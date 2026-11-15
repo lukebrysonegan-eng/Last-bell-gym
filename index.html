@@ -266,7 +266,7 @@ const lerp=(a,b,k)=>a+(b-a)*k;
 const places=[];  // things you can walk up to
 let gymRoof,marquee,rival,coach,partner,walkers=[],rings=[],me,meRing,bossModel,matTex,matCanvas;
 const PARK={x:0,z:0,r:25};
-const R=30;let trainer,trainerMat,trainerLabel;
+const R=30;let trainer,trainerLabel;const trainerMat=mat(0xc9a86a);
 const TRAINERS=[['Straw trainer',0xc9a86a],['Wooden trainer',0x9a6b3f],['Iron trainer',0x8f969e],['Steel trainer',0xcfd6de],['Stone trainer',0x77736b],['Bronze trainer',0xb87333],['Silver trainer',0xdfe6ee],['Gold trainer',0xf2b233],['Crystal trainer',0x7fd6e8],['Obsidian trainer',0x2a2433],['Champion trainer',0xb98cff]];
 function squareRoom(cx,cz,half,h){
   flat(half*2,half*2,0xa7a399,cx,.02,cz);
@@ -281,11 +281,16 @@ function pad(x,z,text,act){
   label(text,x,2.5,z,.65);places.push({x,z,r:2.3,pad:act,label:text});
 }
 function setTrainer(){
-  const l=Math.min(10,S.dl||0),tr=TRAINERS[l];trainerMat.color.setHex(tr[1]);trainer.scale.setScalar(1+l*.07);
-  if(trainerLabel)scene.remove(trainerLabel);trainerLabel=label(tr[0],-11,3.3+l*.16,11,.6);
-  dummies.forEach(d=>{if(d.g.scale&&d.g!==trainer&&d.Z.hp!==Infinity)d.g.scale.setScalar(1+l*.05)});
+  const l=Math.min(10,S.dl||0);trainerMat.color.setHex(TRAINERS[l][1]);
+  dummies.forEach(d=>{if(d.g.scale)d.g.scale.setScalar(1+l*.05)});
 }
-function goTrain(){const Z=ZONES.slice().reverse().find(Z=>S.beaten>=Z.need);me.position.set(Z.x-7.5,0,Z.z-7.8);yaw=me.rotation.y=Math.PI}
+function trainStore(){
+  sheet(`<div class="who">Training store</div><p class="big">Pick a training room</p><p>Each room has a row of dummies. Stand in the gold circle around one to train. Tougher rooms train you faster and open as you beat bosses.</p>`,
+    ZONES.map(Z=>[S.beaten>=Z.need?Z.n:`${Z.n} (locked)`,()=>{
+      if(S.beaten<Z.need)return say('Locked',`Beat ${Z.need} boss${Z.need>1?'es':''} to open the ${Z.n}.`);
+      closeSheet();me.position.set(Z.x-7.5,0,Z.z-8);yaw=me.rotation.y=Math.PI}]).concat([['Leave',closeSheet]]));
+}
+function goTrain(){const Z=ZONES.slice().reverse().find(Z=>S.beaten>=Z.need);me.position.set(Z.x-7.5,0,Z.z-8);yaw=me.rotation.y=Math.PI}
 function goYard(){me.position.set(23,0,23);yaw=me.rotation.y=Math.atan2(-1,-1)}
 function buildTown(){
   flat(400,400,0x6f8f5f,0,0,0);
@@ -293,42 +298,14 @@ function buildTown(){
   pad(26,26,'To training ground','go');
   for(let k=0;k<22;k++){const a=k*.2856,r=rnd(47,58);tree(Math.cos(a)*r,Math.sin(a)*r)}
   gymRoof={visible:true};
-  const track=new T.Mesh(new T.RingGeometry(PARK.r-1.4,PARK.r+1.4,72),mat(0xb5553a));track.rotation.x=-Math.PI/2;track.position.y=.05;track.receiveShadow=true;scene.add(track);
-  // heavy bag
-  const hx=-16,hz=0;box(.2,3.4,.2,0x2b2b30,hx-1.2,1.7,hz);box(1.6,.16,.2,0x2b2b30,hx-.5,3.4,hz);box(.04,.9,.04,0x888888,hx,2.95,hz);
-  const bag=new T.Mesh(new T.CylinderGeometry(.3,.3,1.3,16),mat(0x7a1f1f));bag.position.set(hx,1.85,hz);bag.castShadow=true;scene.add(bag);solid(hx,hz,.6,.6);
-  label('Heavy bag',hx,4.3,hz,.55);places.push({x:hx,z:hz,r:2.2,stat:'pow',name:'Heavy bag',g:bag});
-  // sparring ring
-  const sx=-11,sz=-12;flat(5,5,0x3f6fa8,sx,.06,sz);
-  [[-2.5,-2.5],[2.5,-2.5],[-2.5,2.5],[2.5,2.5]].forEach(p=>box(.18,1.5,.18,0xd8d2c6,sx+p[0],.75,sz+p[1]));
-  [.6,1,1.4].forEach(y=>{box(5,.05,.05,0xb3202a,sx,y,sz-2.5);box(.05,.05,5,0xb3202a,sx-2.5,y,sz);box(.05,.05,5,0xb3202a,sx+2.5,y,sz)});
-  partner=person({skin:'#a36a45',hair:'#111',shorts:'#444b57',gloves:0x2a5db0});partner.position.set(sx,0,sz-.6);
-  label('Sparring',sx,3,sz,.55);places.push({x:sx,z:sz+2.4,r:2.2,stat:'grd',name:'Sparring ring'});
-  // jump rope
-  const jx=0,jz=14;flat(3,3,0x23272e,jx,.06,jz);const rope=new T.Mesh(new T.TorusGeometry(.5,.04,6,20),mat(0xd8d2c6));rope.rotation.x=Math.PI/2;rope.position.set(jx,.1,jz);scene.add(rope);
-  label('Jump rope',jx,2.6,jz,.55);places.push({x:jx,z:jz,r:2,stat:'spd',name:'Jump rope'});
-  // film corner
-  const fx=12,fz=12;box(.2,1.2,.2,0x2b2b30,fx,.6,fz-1);box(1.8,1.1,.12,0x111418,fx,1.7,fz-1);box(1.6,.9,.02,new T.MeshBasicMaterial({color:0x6fa3c9}),fx,1.7,fz-.93);
-  box(2,.45,.5,0x6b4a2e,fx,.25,fz+.8);solid(fx,fz+.8,2,.5);solid(fx,fz-1,1.8,.3);
-  label('Film study',fx,3,fz,.55);places.push({x:fx,z:fz,r:1.8,stat:'foc',name:'Film study'});
-  // roadwork lap, just inside the wall
-  label('Roadwork',0,3.4,PARK.r,.7);places.push({x:0,z:PARK.r,r:2.4,stat:'sta',name:'Roadwork track'});
-  for(let k=0;k<8;k++){const a=Math.PI/2+(k+1)*Math.PI/4,m=new T.Mesh(new T.TorusGeometry(1.3,.09,8,24),new T.MeshBasicMaterial({color:0xf2b233}));
-    m.position.set(Math.cos(a)*PARK.r,1.4,Math.sin(a)*PARK.r);m.rotation.y=-a;m.visible=false;scene.add(m);rings.push(m)}
-  // training dummy
-  const dx=-11,dz=11;trainer=new T.Group();trainerMat=mat(0xc9a86a);
-  box(.2,1.9,.2,0x6b4a2e,0,.95,0,trainer);box(.55,.7,.35,trainerMat,0,1.35,0,trainer);box(1.3,.14,.14,0x6b4a2e,0,1.5,0,trainer);box(.3,.3,.3,trainerMat,0,2,0,trainer);
-  trainer.position.set(dx,0,dz);scene.add(trainer);solid(dx,dz,.6,.6);
-  places.push({x:dx,z:dz,r:2.2,dummy:true,name:'Training dummy',g:trainer});
-  // sword shop
-  box(6,3.6,4,0x6e5a44,13,1.8,-13.5);solid(13,-13.5,6,4);box(6.4,.15,1.8,0xb3202a,13,3,-10.8);
-  SWORDS.forEach((w,k)=>box(.09,1.3,.03,w.c,10.4+k*.58,1.1,-11.45).rotation.z=.12);
-  label('Sword Shop',13,4.8,-11.5,.9);places.push({x:13,z:-10.3,r:2.6,shop:true,name:'Sword shop'});
-  const keeper=person({skin:'#caa07a',hair:'#6b6b6b',beard:true,shirt:'#4a3a2a',shorts:'#2b2b33'});keeper.position.set(15.2,0,-10.6);
-  // upgrade shop
-  box(5,3.6,4,0x4a5568,19,1.8,2);solid(19,2,5,4);box(5.4,.15,1.8,0x27407d,19,3,4.7);
-  label('Upgrade Shop',19,4.8,4,.9);places.push({x:19,z:5.6,r:2.6,upg:true,name:'Upgrade shop'});
-  const clerk=person({skin:'#8d5a3b',hair:'#111111',shirt:'#27407d',shorts:'#2b2b33'});clerk.position.set(20.7,0,4.9);
+  // three stores in a line along the back wall, next to the Fight Night gate
+  const stall=(x,c,aw,text,props,look)=>{box(6,3.6,4,c,x,1.8,-27);solid(x,-27,6,4);box(6.4,.15,1.8,aw,x,3,-24.3);label(text,x,4.9,-25,.9);
+    places.push(Object.assign({x,z:-23.6,r:2.6},props));const k=person(look);k.position.set(x+2.3,0,-24.2)};
+  stall(10.5,0x6e5a44,0xb3202a,'Sword Shop',{shop:true,name:'Sword shop'},{skin:'#caa07a',hair:'#6b6b6b',beard:true,shirt:'#4a3a2a',shorts:'#2b2b33'});
+  SWORDS.forEach((w,k)=>box(.09,1.3,.03,w.c,7.9+k*.58,1.1,-24.95).rotation.z=.12);
+  stall(18,0x4a5568,0x27407d,'Upgrade Shop',{upg:true,name:'Upgrade shop'},{skin:'#8d5a3b',hair:'#111111',shirt:'#27407d',shorts:'#2b2b33'});
+  stall(25.5,0x5f6b4a,0x1f7a4d,'Training Store',{train:true,name:'Training store'},{skin:'#e3b48a',hair:'#3a2a20',shirt:'#1f7a4d',shorts:'#2b2b33'});
+  [0,1,2].forEach(k=>{box(.16,1.5,.16,0x6b4a2e,23.6+k*.9,.75,-24.9);box(.45,.5,.28,0xc9a86a,23.6+k*.9,1.2,-24.9)});
   // coach
   coach=person({skin:'#b9805a',hair:'#3a2a20',shirt:'#b3202a',shorts:'#22242b'});coach.position.set(3,0,-6);coach.rotation.y=.3;
   label('Coach Vega',3,2.9,-6,.55);places.push({x:3,z:-6,r:2.4,talk:'coach',name:'Coach Vega'});
@@ -351,10 +328,11 @@ function buildZones(){
   flat(90,90,0x6f8f5f,Z.x,0,Z.z);
   squareRoom(Z.x,Z.z,14,6);pad(Z.x+11,Z.z+11,'Back to yard','back');
   label(Z.n,Z.x,6.6,Z.z-13,1.1);
-  for(let k=0;k<6;k++){const x=Z.x-7.5+k*3,z=Z.z-9,d=new T.Group();
-    box(.2,1.9,.2,0x6b4a2e,0,.95,0,d);box(.62,.78,.4,Z.c,0,1.35,0,d);box(1.3,.14,.14,0x6b4a2e,0,1.5,0,d);box(.34,.34,.34,Z.c,0,2.04,0,d);
-    d.position.set(x,0,z);scene.add(d);solid(x,z,.6,.6);const st=['pow','grd','spd','sta','foc','coin'][k],rg=new T.Mesh(new T.RingGeometry(1.3,1.47,40),new T.MeshBasicMaterial({color:0xf2b233}));rg.rotation.x=-Math.PI/2;rg.position.set(x,.05,z);scene.add(rg);
-    label(st==='coin'?'Coins':STATS.find(t=>t.k===st).name,x,3,z,.42);dummies.push({x,z,g:d,hp:Z.hp,Z,wob:0,down:0,st})}
+  for(let k=0;k<7;k++){const x=Z.x-7.5+k*2.5,z=Z.z-9,d=new T.Group(),st=['pow','grd','spd','sta','foc','coin','sword'][k],bc=st==='sword'?trainerMat:Z.c;
+    box(.2,1.9,.2,0x6b4a2e,0,.95,0,d);box(.62,.78,.4,bc,0,1.35,0,d);box(1.3,.14,.14,0x6b4a2e,0,1.5,0,d);box(.34,.34,.34,bc,0,2.04,0,d);
+    d.position.set(x,0,z);scene.add(d);solid(x,z,.6,.6);
+    const rg=new T.Mesh(new T.RingGeometry(1.04,1.18,40),new T.MeshBasicMaterial({color:0xf2b233}));rg.rotation.x=-Math.PI/2;rg.position.set(x,.05,z);scene.add(rg);
+    label(st==='coin'?'Coins':st==='sword'?'Sword level':STATS.find(t=>t.k===st).name,x,3,z,.4);dummies.push({x,z,g:d,hp:Z.hp,Z,wob:0,down:0,st})}
 })}
 function swing(){
   if(mode!=='town'||busy||road||swingT>0)return;swingT=.35/(1+.15*(S.hs||0));const p=me.position,s=S.stats;let best=null,bd=2.4;
@@ -470,16 +448,15 @@ $('menu').addEventListener('click',()=>{
   sheet(`<div class="who">Last Bell Gym</div><p class="big">How to play</p>
    <p><b>Move:</b> W A S D, or drag on the left half of a touch screen. <b>Look around:</b> drag anywhere else, or use the left and right arrow keys.</p>
    <p><b>Teleport:</b> tap Teleport and pick a place to appear there instantly. You can still walk around the yard inside the brick wall.</p>
-   <p><b>Farm damage:</b> teleport to a dummy field and stand inside the gold circle around a dummy. You attack it automatically for as long as you stay in the circle. Each dummy trains something different: Power, Defense, Footwork, Conditioning, Composure or coins. Tougher fields open as you beat bosses and build Power much faster.</p>
-   <p><b>Train:</b> every station in the yard has a gold circle. Stand in it and you train automatically for as long as you stay: heavy bag for Power, sparring for Defense, jump rope for Footwork, the track for Conditioning, film study for Composure, and the training dummy for your sword level.</p>
+   <p><b>Train:</b> all training is in the training rooms. Go to the Training Store at the end of the row of stores, pick a room, and stand inside the gold circle around a dummy. You attack it automatically for as long as you stay in the circle. Each dummy trains something different: Power, Defense, Footwork, Conditioning, Composure, coins or your sword level. Tougher rooms open as you beat bosses and build Power much faster.</p>
    <p><b>Fight:</b> go to the Fight Night gate. Block ordinary cuts, dodge the big ones, and hit back when he is open.</p>
    <p><b>Dummy upgrades:</b> tap the Shop button at the top of the screen, or teleport to the Upgrade Shop, and spend coins on dummy levels. Each level makes every training circle give more progress per hit, up to level 10.</p>
-   <p><b>Swords:</b> buy better swords at the Sword Shop, and train on the dummy to level your sword up. Both make every hit stronger.</p>
+   <p><b>Swords:</b> buy better swords at the Sword Shop, and stand at the Sword level dummy in a training room to level your sword up. Both make every hit stronger.</p>
    ${S.perks.length?'<p><b>Learned:</b> '+BOSSES.filter(x=>x.perk&&has(x.perk.k)).map(x=>x.perk.name).join(', ')+'</p>':''}`,
    [['Back to the street',closeSheet],['Start a new career',()=>say('New career','This erases your weeks of training and every win.',[['Keep my career',closeSheet],['Erase and restart',()=>{S=fresh();save();closeSheet();me.position.set(0,0,4);me.userData.gR.material.color.setHex(SWORDS[0].c);setTrainer();setMarquee();hud();intro()}]])]]);
 });
 function intro(){
-  say('Coach Marisol Vega','There you are. Five fights stand between you and the welterweight title: Philadelphia, London, Mexico City, Tokyo, then Isaiah Crane in Las Vegas. Everything is here inside the wall. Tap Teleport to jump straight to any spot. Every station has a gold circle: stand in it and you train automatically for as long as you stay. Buy a better sword at the Sword Shop when you have the coins, and level it up on the training dummy in the yard. To farm damage, teleport to the Wooden dummy field and hit the dummies as much as you like. When you want the fight, teleport to the Fight Night gate.',
+  say('Coach Marisol Vega','There you are. Five fights stand between you and the welterweight title: Philadelphia, London, Mexico City, Tokyo, then Isaiah Crane in Las Vegas. The yard has the stores and the Fight Night gate in a row along the back wall. All training happens in the training rooms: go to the Training Store at the end of the row, pick a room, and stand in the gold circle around a dummy. Buy a better sword at the Sword Shop when you have the coins, and level it up at the Sword level dummy in a training room. When you want the fight, teleport to the Fight Night gate.',
     [['Let’s work',()=>{S.met=true;save();closeSheet()}]]);
 }
 
@@ -491,6 +468,7 @@ function usePlace(){
   if(p.walker)return say('Neighbour',p.walker.lines[Math.random()*p.walker.lines.length|0]);
   if(p.fight){const b=BOSSES[S.beaten];
     return sheet(`<div class="who">Fight Night · ${b.venue}</div><p class="big">${b.name}</p><p>${b.meta}</p><p>Coach Vega: “${readiness(b)}”</p>`,[[b.final?'Fight for the title':'Take the fight',()=>{closeSheet();startFight()}],['Not yet',closeSheet]])}
+  if(p.train)return trainStore();
   if(p.pad)return p.pad==='go'?goTrain():goYard();
   if(p.upg)return upgradeShop();
   if(p.shop)return shop();
@@ -517,7 +495,7 @@ $('tp').addEventListener('click',()=>{
   const list=places.filter(p=>p.name&&!(S.done&&p.fight));
   sheet('<div class="who">Teleport</div><p class="big">Where to?</p>',list.map(p=>[p.name,()=>{closeSheet();const d=Math.hypot(p.x,p.z)||1,k=Math.max(0,d-1.1)/d;me.position.set(p.x*k,0,p.z*k);yaw=Math.atan2(p.x,p.z);me.rotation.y=yaw}]).concat(ZONES.map(Z=>[S.beaten>=Z.need?Z.n:`${Z.n} (locked)`,()=>{
     if(S.beaten<Z.need)return say('Locked',`Beat ${Z.need} boss${Z.need>1?'es':''} to open the ${Z.n}.`);
-    closeSheet();me.position.set(Z.x-7.5,0,Z.z-7.8);yaw=me.rotation.y=Math.PI}])).concat([['Stay here',closeSheet]]));
+    closeSheet();me.position.set(Z.x-7.5,0,Z.z-8);yaw=me.rotation.y=Math.PI}])).concat([['Stay here',closeSheet]]));
 });
 function townStep(dt,t){
   const f=[Math.sin(yaw),Math.cos(yaw)],r=[-f[1],f[0]];
@@ -530,12 +508,12 @@ function townStep(dt,t){
   if(swingT>0){swingT-=dt;const q=1-swingT/.35;arm(me,1,lerp(-2.7,-.3,q),-.15)}
   dummies.forEach(d=>{d.wob=Math.max(0,d.wob-dt);d.g.rotation.x=Math.sin(d.wob*40)*d.wob*1.2;if(d.down>0){d.down-=dt;d.g.visible=d.down<=0}});
   $('swing').hidden=busy||!!road;
-  if(dt&&!road&&swingT<=0&&dummies.some(d=>Math.hypot(d.x-p.x,d.z-p.z)<1.5))swing();
+  if(dt&&!road&&swingT<=0&&dummies.some(d=>Math.hypot(d.x-p.x,d.z-p.z)<1.22))swing();
   walkers.forEach(w=>{const u=w.userData,W=u.w,close=Math.hypot(w.position.x-p.x,w.position.z-p.z)<2.2;
     if(!close){u.k+=u.dir*dt*1.5/Math.hypot(W.b[0]-W.a[0],W.b[1]-W.a[1]);if(u.k>1||u.k<0){u.dir*=-1;u.k=Math.max(0,Math.min(1,u.k))}
       w.position.set(lerp(W.a[0],W.b[0],u.k),0,lerp(W.a[1],W.b[1],u.k));w.rotation.y=Math.atan2((W.b[0]-W.a[0])*u.dir,(W.b[1]-W.a[1])*u.dir)}
     legs(w,t*7+u.ph,close?0:.6);armsWalk(w,t*7+u.ph,close?0:.6)});
-  arm(partner,0,-.7,-1.7);arm(partner,1,-.7,-1.7);partner.userData.body.position.y=Math.abs(Math.sin(t*5))*.04;partner.rotation.y=Math.sin(t*.6)*.8;
+  if(partner){arm(partner,0,-.7,-1.7);arm(partner,1,-.7,-1.7);partner.userData.body.position.y=Math.abs(Math.sin(t*5))*.04;partner.rotation.y=Math.sin(t*.6)*.8}
   gymRoof.visible=!(p.x>-35.5&&p.x<-12.5&&p.z>-30.5&&p.z<-11.5);
   if(road){
     road.t+=dt;$('timer').textContent=road.t.toFixed(1)+' s';const ring=rings[road.i];
@@ -547,7 +525,7 @@ function townStep(dt,t){
       if(q.stat||(S.done&&(q.fight||q.talk==='rival')))return;const d=Math.hypot(q.x-p.x,q.z-p.z);if(d<q.r&&d<best){best=d;near=q}});
     const pr=$('prompt');
     if(near&&!busy){const st=near.stat&&STATS.find(s=>s.k===near.stat);
-      const txt=st?st.verb:near.fight?'Fight Night doors':near.pad?near.label:near.upg?'Upgrade shop':near.shop?'Sword shop':near.dummy?'Upgrade dummies':near.talk==='coach'?'Talk to Coach Vega':near.talk==='rival'?'Talk to '+BOSSES[S.beaten].name:'Say hello';
+      const txt=st?st.verb:near.fight?'Fight Night doors':near.train?'Training store':near.pad?near.label:near.upg?'Upgrade shop':near.shop?'Sword shop':near.dummy?'Upgrade dummies':near.talk==='coach'?'Talk to Coach Vega':near.talk==='rival'?'Talk to '+BOSSES[S.beaten].name:'Say hello';
       const h=(coarse?'':'<kbd>E</kbd>')+txt;if(pr.dataset.h!==h){pr.innerHTML=h;pr.dataset.h=h}pr.hidden=false}
     else pr.hidden=true;
   }
