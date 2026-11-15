@@ -291,22 +291,22 @@ function trainStore(){
       closeSheet();me.position.set(Z.x-7.5,0,Z.z-8);yaw=me.rotation.y=Math.PI}]).concat([['Leave',closeSheet]]));
 }
 function goTrain(){const Z=ZONES.slice().reverse().find(Z=>S.beaten>=Z.need);me.position.set(Z.x-7.5,0,Z.z-8);yaw=me.rotation.y=Math.PI}
-function goYard(){me.position.set(-26.4,0,-21.5);yaw=me.rotation.y=Math.PI}
+function goYard(){me.position.set(-21.5,0,8.4);yaw=me.rotation.y=-Math.PI/2}
 function buildTown(){
   flat(400,400,0x6f8f5f,0,0,0);
   squareRoom(0,0,R,7);
   for(let k=0;k<22;k++){const a=k*.2856,r=rnd(47,58);tree(Math.cos(a)*r,Math.sin(a)*r)}
   gymRoof={visible:true};
   // three stores in a line along the back wall, next to the Fight Night gate
-  const stall=(x,c,aw,text,props,look)=>{box(5.2,3.6,4,c,x,1.8,-27);solid(x,-27,5.2,4);box(5.5,.15,1.8,aw,x,3,-24.3);label(text,x,4.9,-25,.78);
-    places.push(Object.assign({x,z:-23.6,r:2.5},props));const k=person(look);k.position.set(x+2,0,-24.2)};
-  stall(-9.6,0x6e5a44,0xb3202a,'Sword Shop',{shop:true,name:'Sword shop'},{skin:'#caa07a',hair:'#6b6b6b',beard:true,shirt:'#4a3a2a',shorts:'#2b2b33'});
-  SWORDS.forEach((w,k)=>box(.08,1.3,.03,w.c,-11.9+k*.4,1.1,-24.95).rotation.z=.12);
-  stall(-15.2,0x4a5568,0x27407d,'Upgrade Shop',{upg:true,name:'Upgrade shop'},{skin:'#8d5a3b',hair:'#111111',shirt:'#27407d',shorts:'#2b2b33'});
-  stall(-20.8,0x5f6b4a,0x1f7a4d,'Training Store',{train:true,name:'Training store'},{skin:'#e3b48a',hair:'#3a2a20',shirt:'#1f7a4d',shorts:'#2b2b33'});
-  [0,1,2].forEach(k=>{box(.16,1.5,.16,0x6b4a2e,-22.6+k*.9,.75,-24.9);box(.45,.5,.28,0xc9a86a,-22.6+k*.9,1.2,-24.9)});
-  stall(-26.4,0x6a4a5f,0xc9a227,'Training Ground',{pad:'go',label:'Go to the training ground',name:'Training ground'},{skin:'#7a4a2e',hair:'#111111',shirt:'#c9a227',shorts:'#2b2b33'});
-  box(1.2,2.4,.12,0x15151a,-27.4,1.2,-24.95);
+  const stall=(z,c,aw,text,props,look)=>{box(4,3.6,5.2,c,-27,1.8,z);solid(-27,z,4,5.2);box(1.8,.15,5.5,aw,-24.3,3,z);label(text,-24.6,4.9,z,.78);
+    places.push(Object.assign({x:-23.6,z,r:2.5},props));const k=person(look);k.position.set(-24.2,0,z+2);k.rotation.y=Math.PI/2};
+  stall(-8.4,0x6e5a44,0xb3202a,'Sword Shop',{shop:true,name:'Sword shop'},{skin:'#caa07a',hair:'#6b6b6b',beard:true,shirt:'#4a3a2a',shorts:'#2b2b33'});
+  SWORDS.forEach((w,k)=>box(.03,1.3,.08,w.c,-24.95,1.1,-10.5+k*.4).rotation.x=.12);
+  stall(-2.8,0x4a5568,0x27407d,'Upgrade Shop',{upg:true,name:'Upgrade shop'},{skin:'#8d5a3b',hair:'#111111',shirt:'#27407d',shorts:'#2b2b33'});
+  stall(2.8,0x5f6b4a,0x1f7a4d,'Training Store',{train:true,name:'Training store'},{skin:'#e3b48a',hair:'#3a2a20',shirt:'#1f7a4d',shorts:'#2b2b33'});
+  [0,1,2].forEach(k=>{box(.16,1.5,.16,0x6b4a2e,-24.9,.75,1.2+k*.9);box(.28,.5,.45,0xc9a86a,-24.9,1.2,1.2+k*.9)});
+  stall(8.4,0x6a4a5f,0xc9a227,'Training Ground',{pad:'go',label:'Go to the training ground',name:'Training ground'},{skin:'#7a4a2e',hair:'#111111',shirt:'#c9a227',shorts:'#2b2b33'});
+  box(.12,2.4,1.2,0x15151a,-24.95,1.2,7.6);
   // coach
   coach=person({skin:'#b9805a',hair:'#3a2a20',shirt:'#b3202a',shorts:'#22242b'});coach.position.set(3,0,-6);coach.rotation.y=.3;
   label('Coach Vega',3,2.9,-6,.55);places.push({x:3,z:-6,r:2.4,talk:'coach',name:'Coach Vega'});
@@ -457,7 +457,7 @@ $('menu').addEventListener('click',()=>{
    [['Back to the street',closeSheet],['Start a new career',()=>say('New career','This erases your weeks of training and every win.',[['Keep my career',closeSheet],['Erase and restart',()=>{S=fresh();save();closeSheet();me.position.set(0,0,4);me.userData.gR.material.color.setHex(SWORDS[0].c);setTrainer();setMarquee();hud();intro()}]])]]);
 });
 function intro(){
-  say('Coach Marisol Vega','There you are. Five fights stand between you and the welterweight title: Philadelphia, London, Mexico City, Tokyo, then Isaiah Crane in Las Vegas. The four stores stand in a row along the back wall, to the left of the Fight Night gate. All training happens in the training rooms: go to the Training Store to pick a room, or the Training Ground stall to go straight to your best one, and stand in the gold circle around a dummy. Buy a better sword at the Sword Shop when you have the coins, and level it up at the Sword level dummy in a training room. When you want the fight, teleport to the Fight Night gate.',
+  say('Coach Marisol Vega','There you are. Five fights stand between you and the welterweight title: Philadelphia, London, Mexico City, Tokyo, then Isaiah Crane in Las Vegas. The four stores stand in a row along the left wall, away from the Fight Night gate. All training happens in the training rooms: go to the Training Store to pick a room, or the Training Ground stall to go straight to your best one, and stand in the gold circle around a dummy. Buy a better sword at the Sword Shop when you have the coins, and level it up at the Sword level dummy in a training room. When you want the fight, teleport to the Fight Night gate.',
     [['Let’s work',()=>{S.met=true;save();closeSheet()}]]);
 }
 
