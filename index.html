@@ -266,7 +266,7 @@ function buildTown(){
   // heavy bag
   const hx=-16,hz=0;box(.2,3.4,.2,0x2b2b30,hx-1.2,1.7,hz);box(1.6,.16,.2,0x2b2b30,hx-.5,3.4,hz);box(.04,.9,.04,0x888888,hx,2.95,hz);
   const bag=new T.Mesh(new T.CylinderGeometry(.3,.3,1.3,16),mat(0x7a1f1f));bag.position.set(hx,1.85,hz);bag.castShadow=true;scene.add(bag);solid(hx,hz,.6,.6);
-  label('Heavy bag',hx,4.3,hz,.55);places.push({x:hx,z:hz,r:2.2,stat:'pow',name:'Heavy bag'});
+  label('Heavy bag',hx,4.3,hz,.55);places.push({x:hx,z:hz,r:2.2,stat:'pow',name:'Heavy bag',g:bag});
   // sparring ring
   const sx=-11,sz=-12;flat(5,5,0x3f6fa8,sx,.06,sz);
   [[-2.5,-2.5],[2.5,-2.5],[-2.5,2.5],[2.5,2.5]].forEach(p=>box(.18,1.5,.18,0xd8d2c6,sx+p[0],.75,sz+p[1]));
@@ -306,7 +306,11 @@ function buildTown(){
   WALKERS.forEach((w,k)=>{w.a=paths[k][0];w.b=paths[k][1];const p=person(w.look);p.position.set(w.a[0],0,w.a[1]);p.userData.w=w;p.userData.k=Math.random();p.userData.dir=1;walkers.push(p)});
   me=person({skin:'#b98562',hair:'#1c1614',shirt:'#8a8f98',shorts:'#1d1d22',sword:SWORDS[S.sword].c});me.position.set(0,0,4);
 }
-function buildZones(){ZONES.forEach(Z=>{
+function buildZones(){
+  places.filter(p=>p.stat||p.dummy).forEach(p=>{
+    const rg=new T.Mesh(new T.RingGeometry(1.3,1.47,40),new T.MeshBasicMaterial({color:0xf2b233}));rg.rotation.x=-Math.PI/2;rg.position.set(p.x,.07,p.z);scene.add(rg);
+    dummies.push({x:p.x,z:p.z,g:p.g||{rotation:{x:0},visible:true},hp:Infinity,Z:{m:1,hp:Infinity},wob:0,down:0,st:p.dummy?'sword':p.stat,quiet:!(p.dummy||p.stat==='pow')})});
+  ZONES.forEach(Z=>{
   flat(90,90,0x6f8f5f,Z.x,0,Z.z);
   const g=new T.Mesh(new T.CircleGeometry(14,48),mat(0x9d9a8f));g.rotation.x=-Math.PI/2;g.position.set(Z.x,.02,Z.z);g.receiveShadow=true;scene.add(g);
   const bt=new T.CanvasTexture(textCanvas(256,128,c=>{c.fillStyle='#8a4b3a';c.fillRect(0,0,256,128);c.strokeStyle='#d2c4b4';c.lineWidth=3;
@@ -324,9 +328,12 @@ function swing(){
   dummies.forEach(d=>{const q=Math.hypot(d.x-p.x,d.z-p.z);if(q<bd&&d.down<=0){bd=q;best=d}});
   if(!best)return;
   const crit=Math.random()*100<Math.min(40,s.spd*1.5),dmg=Math.round((s.pow*2+Math.random()*s.pow)*swordMult()*(crit?1.6:1));
-  me.rotation.y=Math.atan2(best.x-p.x,best.z-p.z);best.wob=.25;best.hp-=dmg;floater(best.x,2.4,best.z,dmg,crit?'crit':'');
+  me.rotation.y=Math.atan2(best.x-p.x,best.z-p.z);best.wob=.25;best.hp-=dmg;if(!best.quiet)floater(best.x,2.4,best.z,dmg,crit?'crit':'');
   const k=best.st;let up=0;S.xp=S.xp||{};
   if(k==='coin'){S.coins+=best.Z.m;up=1;floater(p.x,2.8,p.z,'+'+best.Z.m+' coins','good')}
+  else if(k==='sword'){
+    if(S.up>=swordCap()){if(Math.random()<.12)floater(p.x,2.8,p.z,'Sword maxed, buy a better one','good')}
+    else{S.xp.sword=(S.xp.sword||0)+best.Z.m;const need=8+S.up*2;if(S.xp.sword>=need){S.xp.sword-=need;S.up++;up=1;floater(p.x,2.8,p.z,'+1 Sword level','good')}}}
   else{S.xp[k]=(S.xp[k]||0)+best.Z.m;let need=6+s[k]*1.5;while(S.xp[k]>=need){S.xp[k]-=need;s[k]++;up++;need=6+s[k]*1.5}
     if(up)floater(p.x,2.8,p.z,'+'+up+' '+STATS.find(t=>t.k===k).name,'good')}
   if(best.hp<=0){best.hp=best.Z.hp;best.down=.5;const c=best.Z.m*4;S.coins+=c;floater(best.x,1.5,best.z,'+'+c+' coins','good')}
@@ -426,14 +433,14 @@ $('menu').addEventListener('click',()=>{
    <p><b>Move:</b> W A S D, or drag on the left half of a touch screen. <b>Look around:</b> drag anywhere else, or use the left and right arrow keys.</p>
    <p><b>Teleport:</b> tap Teleport and pick a place to appear there instantly. You can still walk around the yard inside the brick wall.</p>
    <p><b>Farm damage:</b> teleport to a dummy field and stand inside the gold circle around a dummy. You attack it automatically for as long as you stay in the circle. Each dummy trains something different: Power, Defense, Footwork, Conditioning, Composure or coins. Tougher fields open as you beat bosses and build Power much faster.</p>
-   <p><b>Train:</b> go to any equipment, or the track that runs along the wall. Each drill uses one of three sessions a week.</p>
+   <p><b>Train:</b> every station in the yard has a gold circle. Stand in it and you train automatically for as long as you stay: heavy bag for Power, sparring for Defense, jump rope for Footwork, the track for Conditioning, film study for Composure, and the training dummy for your sword level.</p>
    <p><b>Fight:</b> go to the Fight Night gate. Block ordinary cuts, dodge the big ones, and hit back when he is open.</p>
    <p><b>Swords:</b> buy better swords at the Sword Shop, and train on the dummy to level your sword up. Both make every hit stronger.</p>
    ${S.perks.length?'<p><b>Learned:</b> '+BOSSES.filter(x=>x.perk&&has(x.perk.k)).map(x=>x.perk.name).join(', ')+'</p>':''}`,
    [['Back to the street',closeSheet],['Start a new career',()=>say('New career','This erases your weeks of training and every win.',[['Keep my career',closeSheet],['Erase and restart',()=>{S=fresh();save();closeSheet();me.position.set(0,0,4);me.userData.gR.material.color.setHex(SWORDS[0].c);setMarquee();hud();intro()}]])]]);
 });
 function intro(){
-  say('Coach Marisol Vega','There you are. Five fights stand between you and the welterweight title: Philadelphia, London, Mexico City, Tokyo, then Isaiah Crane in Las Vegas. Everything is here inside the wall. Tap Teleport to jump straight to any spot, three training sessions a week. Buy a better sword at the Sword Shop when you have the coins, and level it up on the training dummy in the yard. To farm damage, teleport to the Wooden dummy field and hit the dummies as much as you like. When you want the fight, teleport to the Fight Night gate.',
+  say('Coach Marisol Vega','There you are. Five fights stand between you and the welterweight title: Philadelphia, London, Mexico City, Tokyo, then Isaiah Crane in Las Vegas. Everything is here inside the wall. Tap Teleport to jump straight to any spot. Every station has a gold circle: stand in it and you train automatically for as long as you stay. Buy a better sword at the Sword Shop when you have the coins, and level it up on the training dummy in the yard. To farm damage, teleport to the Wooden dummy field and hit the dummies as much as you like. When you want the fight, teleport to the Fight Night gate.',
     [['Let’s work',()=>{S.met=true;save();closeSheet()}]]);
 }
 
@@ -459,7 +466,7 @@ $('prompt').addEventListener('click',usePlace);
 $('tp').addEventListener('click',()=>{
   if(mode!=='town'||sheetOpen()||road)return;
   const list=places.filter(p=>p.name&&!(S.done&&p.fight));
-  sheet('<div class="who">Teleport</div><p class="big">Where to?</p>',list.map(p=>[p.name,()=>{closeSheet();const d=Math.hypot(p.x,p.z)||1,k=Math.max(0,d-1.7)/d;me.position.set(p.x*k,0,p.z*k);yaw=Math.atan2(p.x,p.z);me.rotation.y=yaw}]).concat(ZONES.map(Z=>[S.beaten>=Z.need?Z.n:`${Z.n} (locked)`,()=>{
+  sheet('<div class="who">Teleport</div><p class="big">Where to?</p>',list.map(p=>[p.name,()=>{closeSheet();const d=Math.hypot(p.x,p.z)||1,k=Math.max(0,d-1.1)/d;me.position.set(p.x*k,0,p.z*k);yaw=Math.atan2(p.x,p.z);me.rotation.y=yaw}]).concat(ZONES.map(Z=>[S.beaten>=Z.need?Z.n:`${Z.n} (locked)`,()=>{
     if(S.beaten<Z.need)return say('Locked',`Beat ${Z.need} boss${Z.need>1?'es':''} to open the ${Z.n}.`);
     closeSheet();me.position.set(Z.x-7.5,0,Z.z-7.8);yaw=me.rotation.y=Math.PI}])).concat([['Stay here',closeSheet]]));
 });
@@ -488,7 +495,7 @@ function townStep(dt,t){
   }else{
     near=null;let best=1e9;
     places.concat(walkers.map(w=>({x:w.position.x,z:w.position.z,r:2.2,walker:w.userData.w}))).forEach(q=>{
-      if(S.done&&(q.fight||q.talk==='rival'))return;const d=Math.hypot(q.x-p.x,q.z-p.z);if(d<q.r&&d<best){best=d;near=q}});
+      if(q.stat||q.dummy||(S.done&&(q.fight||q.talk==='rival')))return;const d=Math.hypot(q.x-p.x,q.z-p.z);if(d<q.r&&d<best){best=d;near=q}});
     const pr=$('prompt');
     if(near&&!busy){const st=near.stat&&STATS.find(s=>s.k===near.stat);
       const txt=st?st.verb:near.fight?'Fight Night doors':near.shop?'Sword shop':near.dummy?'Train on the dummy':near.talk==='coach'?'Talk to Coach Vega':near.talk==='rival'?'Talk to '+BOSSES[S.beaten].name:'Say hello';
