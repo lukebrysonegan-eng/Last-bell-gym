@@ -335,7 +335,7 @@ function swing(){
   else if(k==='sword'){
     if(S.up>=swordCap()){if(Math.random()<.12)floater(p.x,2.8,p.z,'Sword maxed, buy a better one','good')}
     else{S.xp.sword=(S.xp.sword||0)+m;const need=8+S.up*2;if(S.xp.sword>=need){S.xp.sword-=need;S.up++;up=1;floater(p.x,2.8,p.z,'+1 Sword level','good')}}}
-  else{S.xp[k]=(S.xp[k]||0)+m;let need=6+s[k]*1.5;while(S.xp[k]>=need){S.xp[k]-=need;s[k]++;up++;need=6+s[k]*1.5}
+  else{S.xp[k]=(S.xp[k]||0)+m*(k==='spd'?3:1);let need=6+s[k]*1.5;while(S.xp[k]>=need){S.xp[k]-=need;s[k]++;up++;need=6+s[k]*1.5}
     if(up)floater(p.x,2.8,p.z,'+'+up+' '+STATS.find(t=>t.k===k).name,'good')}
   if(best.hp<=0){best.hp=best.Z.hp;best.down=.5;const c=best.Z.m*4;S.coins+=c;floater(best.x,1.5,best.z,'+'+c+' coins','good')}
   if(up||best.down>0){save();hud()}
