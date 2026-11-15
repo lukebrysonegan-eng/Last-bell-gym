@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}</style>
+</head>
+<body>
+<title>Last Bell Gym</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: the 3D world fills the screen. Fight-poster HUD floats over it: status top-left, prompts and dialogue bottom-centre, ring controls bottom-right. */
+:root{
+  color-scheme:dark;
+  --ring:#1d1626; --canvas:#2a2035; --rope:#3b2e49; --line:#54436a;
+  --chalk:#f4ebdc; --dust:#b9a9c4; --bell:#f2b233; --glove:#ee5a4b; --mint:#46c2a8;
+  --display:"Bowlby One","Impact","Arial Black",sans-serif;
+  --body:"Barlow","Segoe UI",system-ui,sans-serif;
+  --num:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --gl:max(16px,env(safe-area-inset-left,0px)); --gr:max(16px,env(safe-area-inset-right,0px));
+  --gt:calc(env(safe-area-inset-top,0px) + 12px); --gb:calc(env(safe-area-inset-bottom,0px) + 16px);
+}
+html,body{height:100%;overflow:hidden}
+[hidden]{display:none!important}
+body{background:var(--ring);color:var(--chalk);font-family:var(--body);font-size:16px;line-height:1.4;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:3px solid var(--bell);outline-offset:2px}
+.glass{background:rgba(29,22,38,.86);border-radius:6px}
+
+#top{position:fixed;top:var(--gt);left:var(--gl);right:var(--gr);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none}
+#status{padding:8px 12px;min-width:0;max-width:440px}
+.wk{display:flex;align-items:center;gap:10px;font-family:var(--display);font-size:18px;text-transform:uppercase}
+.wk em{font-style:normal;color:var(--bell)}
+.pips{display:flex;gap:4px}.pip{width:11px;height:11px;border-radius:50%;border:2px solid var(--bell)}.pip.on{background:var(--bell)}
+#obj{font-size:14px;color:var(--dust);margin-top:2px}
+#chips{font-family:var(--num);font-weight:600;font-size:15px;letter-spacing:.05em;margin-top:4px;display:flex;flex-wrap:wrap;gap:2px 10px;font-variant-numeric:tabular-nums}
+#chips b{color:var(--bell)}
+.tb{pointer-events:auto;border:0;padding:8px 12px;font-family:var(--num);font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+
+#prompt{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--gb) + 8px);max-width:calc(100% - 32px);
+  font-family:var(--display);font-size:17px;text-transform:uppercase;background:var(--bell);color:#241a08;border:0;border-radius:4px;padding:12px 18px}
+#prompt kbd{font-family:var(--num);font-weight:700;background:#241a08;color:var(--bell);border-radius:3px;padding:1px 6px;margin-right:8px}
+#timer{position:fixed;top:calc(var(--gt) + 110px);left:50%;transform:translateX(-50%);font-family:var(--display);font-size:26px;padding:6px 16px;font-variant-numeric:tabular-nums}
+
+.sheet{position:fixed;left:50%;transform:translateX(-50%);bottom:var(--gb);width:min(560px,calc(100% - 32px));padding:16px 18px;max-height:70%;overflow:auto}
+.sheet .who{font-family:var(--num);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--bell);font-size:15px}
+.sheet .big{font-family:var(--display);font-size:24px;text-transform:uppercase;line-height:1.05;margin:2px 0 6px}
+.sheet p{margin:6px 0}
+.sheet .gain{color:var(--mint);font-weight:700}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.cta{font-family:var(--display);font-size:16px;text-transform:uppercase;background:var(--bell);color:#241a08;border:0;border-radius:4px;padding:10px 16px}
+.ghost{background:none;border:2px solid var(--line);border-radius:4px;padding:8px 14px;font-weight:600}
+.bar{position:relative;height:50px;background:var(--rope);border-radius:4px;overflow:hidden;margin:12px 0}
+.zone{position:absolute;top:0;bottom:0;background:#6a5420}.zone.p{background:var(--bell)}
+.mark{position:absolute;top:-4px;bottom:-4px;width:6px;margin-left:-3px;background:var(--chalk);border-radius:3px;box-shadow:0 0 0 2px var(--ring)}
+
+#fhud{position:fixed;inset:0;pointer-events:none}
+#bossbox{position:absolute;top:var(--gt);left:50%;transform:translateX(-50%);width:min(460px,calc(100% - 32px));padding:8px 12px}
+#bossbox .nm{display:flex;justify-content:space-between;gap:8px;font-family:var(--num);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:16px}
+#bossbox .nm span:last-child{color:var(--bell)}
+.hp{position:relative;height:16px;background:var(--rope);border-radius:3px;overflow:hidden;margin-top:4px}
+.hp i{position:absolute;inset:0 auto 0 0;background:var(--glove)}
+.hp.me i{background:var(--mint)}.hp.st i{background:var(--bell)}.hp.st{height:8px}
+#tell{margin-top:6px;font-family:var(--display);font-size:17px;text-transform:uppercase;min-height:1.3em;text-align:center}
+#tell.block{color:var(--bell)}#tell.slip{color:var(--glove)}#tell.open{color:var(--mint)}
+#mebox{position:absolute;left:var(--gl);bottom:calc(var(--gb) + 150px);width:min(220px,46%);padding:8px 10px;font-family:var(--num);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:14px}
+#pads{position:absolute;right:var(--gr);bottom:var(--gb);display:grid;grid-template-columns:repeat(2,minmax(0,84px));gap:8px;pointer-events:auto}
+.pad{height:68px;border:0;border-bottom:4px solid var(--line);border-radius:8px;background:rgba(59,46,73,.92);font-family:var(--display);font-size:15px;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+.pad small{font-family:var(--num);font-weight:600;color:var(--bell);font-size:12px;letter-spacing:.08em}
+.pad.on,.pad:active{background:var(--bell);color:#241a08}.pad.on small,.pad:active small{color:#241a08}
+.pop{position:fixed;font-family:var(--display);font-size:26px;pointer-events:none;color:var(--glove);text-shadow:0 2px 0 #000;animation:pop .9s ease-out forwards;transform:translate(-50%,0)}
+.pop.crit{color:var(--bell);font-size:34px}.pop.good{color:var(--mint);font-size:20px}.pop.me{color:#ff9b8f}
+@keyframes pop{from{margin-top:0;opacity:1}to{margin-top:-50px;opacity:0}}
+#swing{position:fixed;right:var(--gr);bottom:var(--gb);width:84px}
+#hurt{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 120px 30px var(--glove);opacity:0}
+#joy{position:fixed;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;border:2px solid rgba(244,235,220,.5);pointer-events:none}
+#joy i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px;border-radius:50%;background:rgba(244,235,220,.7)}
+#fade{position:fixed;inset:0;background:#0b0910;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-family:var(--display);font-size:clamp(22px,6vw,40px);text-transform:uppercase;opacity:0;pointer-events:none;transition:opacity .35s}
+#fade.on{opacity:1}
+@media (prefers-reduced-motion:reduce){#fade{transition:none}}
+</style>
+
+<canvas id="c"></canvas>
+<div id="top">
+  <div id="status" class="glass"><div class="wk"><span>Last <em>Bell</em></span><span id="week"></span></div><div id="obj"></div><div id="chips"></div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button id="tp" class="glass tb">Teleport</button><button id="menu" class="glass tb">Menu</button></div>
+</div>
+<button id="prompt" hidden></button>
+<div id="timer" class="glass" hidden></div>
+<div id="fhud" hidden>
+  <div id="bossbox" class="glass"><div class="nm"><span id="bname"></span><span id="btag"></span></div><div class="hp"><i id="bhp"></i></div><div id="tell"></div></div>
+  <div id="mebox" class="glass">You<div class="hp me"><i id="php"></i></div><div class="hp st"><i id="pst"></i></div></div>
+  <div id="pads">
+    <button class="pad" data-p="jab" id="pad-jab">Slash<small>J</small></button>
+    <button class="pad" data-p="power" id="pad-power">Heavy<small>K</small></button>
+    <button class="pad" data-p="block" id="pad-block">Block<small>Hold L</small></button>
+    <button class="pad" data-p="slip" id="pad-slip">Dodge<small>Space</small></button>
+  </div>
+</div>
+<button id="swing" class="pad" hidden>Slash<small>J</small></button>
+<div id="hurt"></div>
+<div id="joy" hidden><i></i></div>
+<div id="sheet" class="sheet glass" hidden></div>
+<div id="fade"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const STATS=[
+  {k:'pow',name:'Power',short:'POW',drill:'Heavy bag',verb:'Hit the heavy bag'},
+  {k:'grd',name:'Defense',short:'DEF',drill:'Sparring',verb:'Spar three rounds'},
+  {k:'spd',name:'Footwork',short:'FTW',drill:'Jump rope',verb:'Jump rope'},
+  {k:'sta',name:'Conditioning',short:'CON',drill:'Roadwork',verb:'Start roadwork'},
+  {k:'foc',name:'Composure',short:'CMP',drill:'Film study',verb:'Study fight film'}
+];
+const BOSSES=[
+  {name:'Darnell Pike',tag:'The Doorman',venue:'Club show, North Philadelphia',meta:'Age 34 · 11–9–1, 4 KO · Orthodox · Philadelphia, USA',
+   lvl:3,hp:450,atk:10,spd:2.1,pattern:['strike','strike','rest'],
+   moves:{strike:'Quick cut',rest:'Lowers his sword'},
+   scout:'He throws one punch at a time and tires every third exchange. Block the jab, then make him pay when his hands drop.',
+   quote:'Nothing personal, kid. I got rent.',
+   perk:{k:'door',name:'High Guard',text:'Your stamina keeps recovering at full speed while you block.'},
+   look:{skin:'#8d5a3b',hair:'#1a1412',bald:true,beard:true,shorts:'#27407d'}},
+  {name:'Callum Reid',tag:'Quickstep',venue:'York Hall, Bethnal Green, London',meta:'Age 24 · 14–0, 5 KO · Southpaw · London, England',
+   lvl:6,hp:900,atk:16,spd:2.7,pattern:['flurry','strike','flurry','rest'],
+   moves:{strike:'Left-hand cut',flurry:'Three-cut combination',rest:'Circles out to reset'},
+   scout:'None of his shots hurt much alone, but they come in threes. Keep your guard up through the whole combination before you answer.',
+   quote:'You’ve come a long way to lose on points, mate.',
+   perk:{k:'feet',name:'Quick Feet',text:'The first punch you land after slipping a shot does double damage.'},
+   look:{skin:'#e8b796',hair:'#b5562b',shorts:'#f4ebdc'}},
+  {name:'Rodrigo Salcedo',tag:'El Martillo',venue:'Arena México, Mexico City',meta:'Age 29 · 27–2, 22 KO · Orthodox · Iztapalapa, Mexico',
+   lvl:10,hp:1500,atk:24,spd:2.4,pattern:['strike','heavy','rest','strike','flurry'],
+   moves:{strike:'Low cut',flurry:'Low-high combination',heavy:'Overhead chop',rest:'Shakes out his arms'},
+   scout:'Watch him dip. That is the overhand right loading, and blocking it will not save you. Slip it, then hit him while he recovers.',
+   quote:'Aquí se pelea. Here, we fight.',
+   perk:{k:'stone',name:'Counter Timing',text:'Power shots do 40% more while the opponent is loading a big punch or recovering.'},
+   look:{skin:'#c68a5e',hair:'#16110f',beard:true,shorts:'#1f7a4d'}},
+  {name:'Kenta Arai',tag:'The Switch',venue:'Korakuen Hall, Tokyo',meta:'Age 27 · 21–1, 12 KO · Switch-hitter · Osaka, Japan',
+   lvl:14,hp:2100,atk:31,spd:2.9,pattern:['flurry','strike','heavy','flurry','rest','heavy'],
+   moves:{strike:'Straight thrust',flurry:'Switch-stance combination',heavy:'Spinning cut',rest:'Steps back to reset'},
+   scout:'He sets up the liver shot twice a cycle. Count them. Save your stamina for the moment he steps back.',
+   quote:'I have watched your fights. All of them. It did not take long.',
+   perk:{k:'wind',name:'Second Wind',text:'Once per fight, a knockout blow leaves you standing with a quarter of your health.'},
+   look:{skin:'#e3b48a',hair:'#111111',shorts:'#b3202a'}},
+  {name:'Isaiah Crane',tag:'The Verdict',venue:'MGM Grand Garden Arena, Las Vegas',meta:'Age 31 · 40–0, 31 KO · Orthodox · Detroit, USA',
+   lvl:19,hp:2850,atk:40,spd:3.1,final:true,pattern:['strike','flurry','heavy','strike','rest','heavy','flurry','strike','rest'],
+   moves:{strike:'Champion’s cut',flurry:'Title combination',heavy:'The Verdict',rest:'Plays to the crowd'},
+   scout:'He has no bad habits, only patterns. Stay alive through the first half. Once you hurt him he will come at you faster and harder.',
+   quote:'Forty came before you. Enjoy the walk to the ring.',
+   look:{skin:'#6b4329',hair:'#120e0c',beard:true,shorts:'#c9a227'}}
+];
+const WALKERS=[
+  {look:{skin:'#d9a57e',hair:'#5a3a22',shirt:'#3f7d6e',shorts:'#2b2b33'},a:[-40,6],b:[40,6],lines:['You fight out of Last Bell? Vega trained my uncle. He still can’t hear out of one ear.','Road’s quiet today. Good day for roadwork in the park.']},
+  {look:{skin:'#7a4a2e',hair:'#111',shirt:'#c9a227',shorts:'#1d2440'},a:[6,-40],b:[6,40],lines:['I’ve got tickets for fight night. Don’t make me regret it.','Crane’s forty and oh. Somebody has to be the one.']},
+  {look:{skin:'#f0c8a8',hair:'#c9c2b8',shirt:'#8a3d3d',shorts:'#3a3a3a'},a:[-6,38],b:[-6,-38],lines:['I saw Pike fight in ’09. He was slow then too. Hits hard, though.','Keep your hands up, kid. That’s the whole secret.']}
+];
+
+const SWORDS=[{n:'Wooden sword',p:0,b:0,c:0x8a6a45},{n:'Iron sword',p:60,b:.15,c:0x8f969e},{n:'Steel longsword',p:150,b:.3,c:0xcfd6de},{n:'Knight’s blade',p:320,b:.5,c:0xe8f1fa},{n:'Champion’s greatsword',p:600,b:.75,c:0xf2b233}];
+const swordCap=()=>5*(S.sword+1),swordMult=()=>1+SWORDS[S.sword].b+S.up*.04;
+const ZONES=[{n:'Wooden dummy field',m:1,need:0,x:-260,z:260,c:0xc9a86a,hp:60},{n:'Iron dummy field',m:3,need:1,x:0,z:260,c:0x8f969e,hp:400},{n:'Stone dummy field',m:7,need:2,x:260,z:260,c:0x77736b,hp:1500},{n:'Champion\u2019s field',m:15,need:4,x:-260,z:-260,c:0xf2b233,hp:5000}];
+const AREAS=[[0,0,30]].concat(ZONES.map(Z=>[Z.x,Z.z,14])),dummies=[];let swingT=0;
+/* ---------- save ---------- */
+let S;
+const fresh=()=>({day:1,slots:3,stats:{pow:3,grd:3,spd:3,sta:3,foc:3},beaten:0,perks:[],done:false,finish:0,met:false,coins:30,sword:0,up:0});
+const save=()=>{try{localStorage.setItem('lastbell',JSON.stringify(S))}catch(e){}};
+const load=()=>{try{const d=JSON.parse(localStorage.getItem('lastbell'));if(d&&d.stats)return d}catch(e){}return null};
+const has=k=>S.perks.includes(k);
+const hpMax=()=>40+S.stats.sta*8, stMax=()=>100+S.stats.foc*5;
+
+/* ---------- three setup ---------- */
+const T=THREE;
+let renderer;
+try{renderer=new T.WebGLRenderer({canvas:$('c'),antialias:true})}catch(e){}
+const scene=new T.Scene(),cam=new T.PerspectiveCamera(60,1,.1,400);
+const hemi=new T.HemisphereLight(0xdfeeff,0x55504a,.8),sun=new T.DirectionalLight(0xfff1d6,.9),ringLight=new T.PointLight(0xfff4e0,0,40);
+scene.add(hemi,sun,sun.target,ringLight);
+sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-32,right:32,top:32,bottom:-32,near:1,far:120});sun.shadow.bias=-.0006;
+const RX=400; // the ring lives far from town
+ringLight.position.set(RX,8,0);
+function mood(fightNight){
+  const c=fightNight?0x0b0910:0x9cc4e4;
+  scene.background=new T.Color(c);scene.fog=fightNight?new T.Fog(c,14,46):new T.Fog(c,45,150);
+  hemi.intensity=fightNight?.38:.8;sun.intensity=fightNight?.3:.9;ringLight.intensity=fightNight?1.5:0;
+}
+const mat=(c,o)=>new T.MeshLambertMaterial(Object.assign({color:c},o));
+function box(w,h,d,c,x,y,z,parent){
+  const m=new T.Mesh(new T.BoxGeometry(w,h,d),c&&c.isMaterial?c:mat(c));m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;(parent||scene).add(m);return m;
+}
+function flat(w,d,c,x,y,z){const m=new T.Mesh(new T.PlaneGeometry(w,d),c&&c.isMaterial?c:mat(c));m.rotation.x=-Math.PI/2;m.position.set(x,y,z);m.receiveShadow=true;scene.add(m);return m}
+const solids=[];
+const solid=(x,z,w,d)=>solids.push([x-w/2,x+w/2,z-d/2,z+d/2]);
+const blocked=(x,z,r=.45)=>!AREAS.some(a=>Math.hypot(x-a[0],z-a[1])<a[2]-1.3)||solids.some(s=>x>s[0]-r&&x<s[1]+r&&z>s[2]-r&&z<s[3]+r);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+
+function facade(base,floors,cols){
+  const c=document.createElement('canvas');c.width=cols*64;c.height=floors*64;const g=c.getContext('2d');
+  g.fillStyle=base;g.fillRect(0,0,c.width,c.height);
+  g.strokeStyle='rgba(0,0,0,.13)';for(let y=0;y<c.height;y+=8){g.beginPath();g.moveTo(0,y);g.lineTo(c.width,y);g.stroke()}
+  for(let f=0;f<floors;f++)for(let i=0;i<cols;i++){
+    g.fillStyle=Math.random()<.14?'#e8d9a0':Math.random()<.5?'#2b3a4a':'#3d5063';g.fillRect(i*64+20,f*64+14,24,34);
+    g.strokeStyle='#d8d2c6';g.lineWidth=2;g.strokeRect(i*64+20,f*64+14,24,34);g.fillStyle='#d8d2c6';g.fillRect(i*64+18,f*64+48,28,4);
+  }
+  return new T.MeshLambertMaterial({map:new T.CanvasTexture(c)});
+}
+function building(x,z,w,d,h,base){
+  const fl=Math.max(1,Math.round(h/3.2)),mx=facade(base,fl,Math.max(1,Math.round(w/3.2))),mz=facade(base,fl,Math.max(1,Math.round(d/3.2))),roof=mat(0x3a3a40);
+  const m=new T.Mesh(new T.BoxGeometry(w,h,d),[mz,mz,roof,roof,mx,mx]);m.position.set(x,h/2,z);m.castShadow=m.receiveShadow=true;scene.add(m);solid(x,z,w,d);return m;
+}
+function textCanvas(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),c);return c}
+function label(text,x,y,z,scale=1){
+  const c=textCanvas(512,112,g=>{g.fillStyle='rgba(29,22,38,.88)';g.fillRect(0,0,512,112);g.fillStyle='#f2b233';g.fillRect(0,104,512,8);
+    g.fillStyle='#f4ebdc';g.font='bold 58px "Barlow Condensed","Arial Narrow",Arial,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(text.toUpperCase(),256,54,490)});
+  const s=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(c),fog:false,depthTest:false}));s.scale.set(5.2*scale,1.14*scale,1);s.position.set(x,y,z);s.renderOrder=5;scene.add(s);return s;
+}
+function tree(x,z){box(.4,2.4,.4,0x5a4030,x,1.2,z);const m=new T.Mesh(new T.IcosahedronGeometry(rnd(1.5,2.1),1),mat([0x3f7a45,0x4b8a4c,0x356b3e][Math.random()*3|0]));m.position.set(x,3.6,z);m.castShadow=true;scene.add(m);solid(x,z,.5,.5)}
+function lamp(x,z){box(.14,4.6,.14,0x2b2b30,x,2.3,z);box(.9,.12,.3,0x2b2b30,x+.35,4.6,z);box(.4,.1,.24,new T.MeshBasicMaterial({color:0xfff2c0}),x+.6,4.52,z)}
+function car(x,z,c,rot){const g=new T.Group();box(4.2,.8,1.8,c,0,.7,0,g);box(2.2,.7,1.6,0x222831,-.2,1.4,0,g);
+  [[-1.3,.9],[1.3,.9],[-1.3,-.9],[1.3,-.9]].forEach(([a,b])=>{const w=new T.Mesh(new T.CylinderGeometry(.36,.36,.25,12),mat(0x15151a));w.rotation.x=Math.PI/2;w.position.set(a,.36,b);g.add(w)});
+  g.position.set(x,0,z);g.rotation.y=rot?Math.PI/2:0;scene.add(g);rot?solid(x,z,1.9,4.3):solid(x,z,4.3,1.9)}
+
+/* ---------- people ---------- */
+function person(o){
+  const g=new T.Group(),body=new T.Group();g.add(body);
+  const skin=mat(o.skin),top=o.shirt?mat(o.shirt):skin,sh=mat(o.shorts||'#222');
+  box(.6,.72,.32,top,0,1.2,0,body);box(.58,.3,.33,sh,0,.76,0,body);
+  box(.16,.12,.16,skin,0,1.62,0,body);
+  const head=new T.Mesh(new T.SphereGeometry(.19,16,12),skin);head.scale.y=1.16;head.position.set(0,1.84,0);head.castShadow=true;body.add(head);
+  if(!o.bald){const h=new T.Mesh(new T.SphereGeometry(.2,16,8,0,Math.PI*2,0,Math.PI*.48),mat(o.hair));h.scale.y=1.2;h.position.set(0,1.86,-.015);body.add(h)}
+  if(o.beard)box(.26,.13,.12,o.hair,0,1.71,.12,body);
+  box(.05,.03,.02,0x1a1210,-.07,1.87,.18,body);box(.05,.03,.02,0x1a1210,.07,1.87,.18,body);
+  const limb=(x,y,c1,c2,len,w)=>{const a=new T.Group();a.position.set(x,y,0);box(w,len,w,c1,0,-len/2,0,a);const e=new T.Group();e.position.y=-len;a.add(e);box(w*.9,len,w*.9,c2,0,-len/2,0,e);body.add(a);return [a,e]};
+  const [aL,eL]=limb(.39,1.5,top,skin,.31,.16),[aR,eR]=limb(-.39,1.5,top,skin,.31,.16);
+  const [lL,kL]=limb(.16,.66,o.shirt?sh:skin,skin,.33,.19),[lR,kR]=limb(-.16,.66,o.shirt?sh:skin,skin,.33,.19);
+  [kL,kR].forEach(k=>box(.2,.1,.32,0x1c1c20,0,-.33,.05,k));
+  let gR=null;
+  if(o.gloves)[eL,eR].forEach((e,i)=>{const gl=new T.Mesh(new T.SphereGeometry(.13,12,10),new T.MeshLambertMaterial({color:o.gloves,emissive:0x000000}));gl.position.y=-.36;gl.castShadow=true;e.add(gl);if(i)gR=gl});
+  if(o.sword){const sw=new T.Group();gR=box(.06,1,.02,new T.MeshLambertMaterial({color:o.sword,emissive:0x000000}),0,-.66,0,sw);box(.28,.05,.07,0x3a2a1a,0,-.14,0,sw);box(.05,.2,.05,0x3a2a1a,0,-.02,0,sw);sw.position.y=-.3;eR.add(sw)}
+  g.userData={body,aL,eL,aR,eR,lL,kL,lR,kR,gR,ph:Math.random()*6};scene.add(g);return g;
+}
+function legs(p,t,amt){const u=p.userData,s=Math.sin(t)*amt;u.lL.rotation.x=-s*.7;u.lR.rotation.x=s*.7;u.kL.rotation.x=Math.max(0,-Math.sin(t+1))*amt*.9;u.kR.rotation.x=Math.max(0,Math.sin(t+1))*amt*.9}
+function armsWalk(p,t,amt){const u=p.userData,s=Math.sin(t)*amt;u.aL.rotation.set(s*.6,0,.06);u.aR.rotation.set(-s*.6,0,-.06);u.eL.rotation.x=u.eR.rotation.x=-.25-amt*.3;u.body.rotation.set(amt*.06,0,0)}
+function arm(p,side,a,e){const u=p.userData;(side?u.aR:u.aL).rotation.set(a,0,side?.1:-.1);(side?u.eR:u.eL).rotation.x=e}
+const lerp=(a,b,k)=>a+(b-a)*k;
+
+/* ---------- town ---------- */
+const places=[];  // things you can walk up to
+let gymRoof,marquee,rival,coach,partner,walkers=[],rings=[],me,meRing,bossModel,matTex,matCanvas;
+const PARK={x:0,z:0,r:25};
+const R=30;
+function buildTown(){
+  flat(400,400,0x6f8f5f,0,0,0);
+  const g=new T.Mesh(new T.CircleGeometry(R,64),mat(0xa7a399));g.rotation.x=-Math.PI/2;g.position.y=.02;g.receiveShadow=true;scene.add(g);
+  const bt=new T.CanvasTexture(textCanvas(256,128,c=>{c.fillStyle='#8a4b3a';c.fillRect(0,0,256,128);c.strokeStyle='#d2c4b4';c.lineWidth=3;
+    for(let r=0;r<4;r++){c.beginPath();c.moveTo(0,r*32+1);c.lineTo(256,r*32+1);c.stroke();for(let k=0;k<4;k++){const x=k*64+(r%2?32:0);c.beginPath();c.moveTo(x,r*32);c.lineTo(x,r*32+32);c.stroke()}}}));
+  bt.wrapS=bt.wrapT=T.RepeatWrapping;bt.repeat.set(64,5);
+  const wall=new T.Mesh(new T.CylinderGeometry(R,R,7,72,1,true),new T.MeshLambertMaterial({map:bt,side:T.BackSide}));wall.position.y=3.5;wall.receiveShadow=true;scene.add(wall);
+  const cap=new T.Mesh(new T.RingGeometry(R,R+.9,72),mat(0x6e3a2d,{side:T.DoubleSide}));cap.rotation.x=-Math.PI/2;cap.position.y=7;scene.add(cap);
+  for(let k=0;k<22;k++){const a=k*.2856,r=rnd(35,46);tree(Math.cos(a)*r,Math.sin(a)*r)}
+  gymRoof={visible:true};
+  const track=new T.Mesh(new T.RingGeometry(PARK.r-1.4,PARK.r+1.4,72),mat(0xb5553a));track.rotation.x=-Math.PI/2;track.position.y=.05;track.receiveShadow=true;scene.add(track);
+  // heavy bag
+  const hx=-16,hz=0;box(.2,3.4,.2,0x2b2b30,hx-1.2,1.7,hz);box(1.6,.16,.2,0x2b2b30,hx-.5,3.4,hz);box(.04,.9,.04,0x888888,hx,2.95,hz);
+  const bag=new T.Mesh(new T.CylinderGeometry(.3,.3,1.3,16),mat(0x7a1f1f));bag.position.set(hx,1.85,hz);bag.castShadow=true;scene.add(bag);solid(hx,hz,.6,.6);
+  label('Heavy bag',hx,4.3,hz,.55);places.push({x:hx,z:hz,r:2.2,stat:'pow',name:'Heavy bag'});
+  // sparring ring
+  const sx=-11,sz=-12;flat(5,5,0x3f6fa8,sx,.06,sz);
+  [[-2.5,-2.5],[2.5,-2.5],[-2.5,2.5],[2.5,2.5]].forEach(p=>box(.18,1.5,.18,0xd8d2c6,sx+p[0],.75,sz+p[1]));
+  [.6,1,1.4].forEach(y=>{box(5,.05,.05,0xb3202a,sx,y,sz-2.5);box(.05,.05,5,0xb3202a,sx-2.5,y,sz);box(.05,.05,5,0xb3202a,sx+2.5,y,sz)});
+  partner=person({skin:'#a36a45',hair:'#111',shorts:'#444b57',gloves:0x2a5db0});partner.position.set(sx,0,sz-.6);
+  label('Sparring',sx,3,sz,.55);places.push({x:sx,z:sz+2.4,r:2.2,stat:'grd',name:'Sparring ring'});
+  // jump rope
+  const jx=0,jz=14;flat(3,3,0x23272e,jx,.06,jz);const rope=new T.Mesh(new T.TorusGeometry(.5,.04,6,20),mat(0xd8d2c6));rope.rotation.x=Math.PI/2;rope.position.set(jx,.1,jz);scene.add(rope);
+  label('Jump rope',jx,2.6,jz,.55);places.push({x:jx,z:jz,r:2,stat:'spd',name:'Jump rope'});
+  // film corner
+  const fx=12,fz=12;box(.2,1.2,.2,0x2b2b30,fx,.6,fz-1);box(1.8,1.1,.12,0x111418,fx,1.7,fz-1);box(1.6,.9,.02,new T.MeshBasicMaterial({color:0x6fa3c9}),fx,1.7,fz-.93);
+  box(2,.45,.5,0x6b4a2e,fx,.25,fz+.8);solid(fx,fz+.8,2,.5);solid(fx,fz-1,1.8,.3);
+  label('Film study',fx,3,fz,.55);places.push({x:fx,z:fz,r:1.8,stat:'foc',name:'Film study'});
+  // roadwork lap, just inside the wall
+  label('Roadwork',0,3.4,PARK.r,.7);places.push({x:0,z:PARK.r,r:2.4,stat:'sta',name:'Roadwork track'});
+  for(let k=0;k<8;k++){const a=Math.PI/2+(k+1)*Math.PI/4,m=new T.Mesh(new T.TorusGeometry(1.3,.09,8,24),new T.MeshBasicMaterial({color:0xf2b233}));
+    m.position.set(Math.cos(a)*PARK.r,1.4,Math.sin(a)*PARK.r);m.rotation.y=-a;m.visible=false;scene.add(m);rings.push(m)}
+  // training dummy
+  const dx=-11,dz=11;box(.2,1.9,.2,0x6b4a2e,dx,.95,dz);box(.55,.7,.35,0xc9a86a,dx,1.35,dz);box(1.3,.14,.14,0x6b4a2e,dx,1.5,dz);box(.3,.3,.3,0xc9a86a,dx,2,dz);solid(dx,dz,.6,.6);
+  label('Training dummy',dx,3,dz,.55);places.push({x:dx,z:dz,r:2.2,dummy:true,name:'Training dummy'});
+  // sword shop
+  box(6,3.6,4,0x6e5a44,13,1.8,-13.5);solid(13,-13.5,6,4);box(6.4,.15,1.8,0xb3202a,13,3,-10.8);
+  SWORDS.forEach((w,k)=>box(.09,1.3,.03,w.c,11+k*.7,1.1,-11.45).rotation.z=.12);
+  label('Sword Shop',13,4.8,-11.5,.9);places.push({x:13,z:-10.3,r:2.6,shop:true,name:'Sword shop'});
+  const keeper=person({skin:'#caa07a',hair:'#6b6b6b',beard:true,shirt:'#4a3a2a',shorts:'#2b2b33'});keeper.position.set(15.2,0,-10.6);
+  // coach
+  coach=person({skin:'#b9805a',hair:'#3a2a20',shirt:'#b3202a',shorts:'#22242b'});coach.position.set(3,0,-6);coach.rotation.y=.3;
+  label('Coach Vega',3,2.9,-6,.55);places.push({x:3,z:-6,r:2.4,talk:'coach',name:'Coach Vega'});
+  // fight gate in the north wall
+  box(13,2.6,.6,0x1d1626,0,5,-29.3);
+  marquee=new T.Mesh(new T.PlaneGeometry(12.4,2.2),new T.MeshBasicMaterial({map:new T.CanvasTexture(textCanvas(1024,180,()=>{}))}));marquee.position.set(0,5,-28.96);scene.add(marquee);
+  box(3.6,3.4,.5,0x15151a,0,1.7,-29.5);box(1.5,3.1,.1,0x6b4a2e,-.8,1.55,-29.2);box(1.5,3.1,.1,0x6b4a2e,.8,1.55,-29.2);
+  label('Fight Night',0,7.9,-29,1.2);places.push({x:0,z:-26.5,r:3,fight:true,name:'Fight Night gate'});
+  places.push({x:5,z:-22,r:2.2,talk:'rival'});
+  [[9,20],[-9,20],[-21,-8],[21,8]].forEach(p=>lamp(p[0],p[1]));
+  const paths=[[[-20,6],[20,6]],[[7,-8],[7,19]],[[-5,19],[-5,-18]]];
+  WALKERS.forEach((w,k)=>{w.a=paths[k][0];w.b=paths[k][1];const p=person(w.look);p.position.set(w.a[0],0,w.a[1]);p.userData.w=w;p.userData.k=Math.random();p.userData.dir=1;walkers.push(p)});
+  me=person({skin:'#b98562',hair:'#1c1614',shirt:'#8a8f98',shorts:'#1d1d22',sword:SWORDS[S.sword].c});me.position.set(0,0,4);
+}
+function buildZones(){ZONES.forEach(Z=>{
+  flat(90,90,0x6f8f5f,Z.x,0,Z.z);
+  const g=new T.Mesh(new T.CircleGeometry(14,48),mat(0x9d9a8f));g.rotation.x=-Math.PI/2;g.position.set(Z.x,.02,Z.z);g.receiveShadow=true;scene.add(g);
+  const bt=new T.CanvasTexture(textCanvas(256,128,c=>{c.fillStyle='#8a4b3a';c.fillRect(0,0,256,128);c.strokeStyle='#d2c4b4';c.lineWidth=3;
+    for(let r=0;r<4;r++){c.beginPath();c.moveTo(0,r*32+1);c.lineTo(256,r*32+1);c.stroke();for(let k=0;k<4;k++){const x=k*64+(r%2?32:0);c.beginPath();c.moveTo(x,r*32);c.lineTo(x,r*32+32);c.stroke()}}}));
+  bt.wrapS=bt.wrapT=T.RepeatWrapping;bt.repeat.set(30,4);
+  const w=new T.Mesh(new T.CylinderGeometry(14,14,6,56,1,true),new T.MeshLambertMaterial({map:bt,side:T.BackSide}));w.position.set(Z.x,3,Z.z);scene.add(w);
+  label(Z.n,Z.x,6.6,Z.z-13,1.1);
+  for(let k=0;k<6;k++){const x=Z.x-7.5+k*3,z=Z.z-9,d=new T.Group();
+    box(.2,1.9,.2,0x6b4a2e,0,.95,0,d);box(.62,.78,.4,Z.c,0,1.35,0,d);box(1.3,.14,.14,0x6b4a2e,0,1.5,0,d);box(.34,.34,.34,Z.c,0,2.04,0,d);
+    d.position.set(x,0,z);scene.add(d);solid(x,z,.6,.6);const st=['pow','grd','spd','sta','foc','coin'][k],rg=new T.Mesh(new T.RingGeometry(1.3,1.47,40),new T.MeshBasicMaterial({color:0xf2b233}));rg.rotation.x=-Math.PI/2;rg.position.set(x,.05,z);scene.add(rg);
+    label(st==='coin'?'Coins':STATS.find(t=>t.k===st).name,x,3,z,.42);dummies.push({x,z,g:d,hp:Z.hp,Z,wob:0,down:0,st})}
+})}
+function swing(){
+  if(mode!=='town'||busy||road||swingT>0)return;swingT=.35;const p=me.position,s=S.stats;let best=null,bd=2.4;
+  dummies.forEach(d=>{const q=Math.hypot(d.x-p.x,d.z-p.z);if(q<bd&&d.down<=0){bd=q;best=d}});
+  if(!best)return;
+  const crit=Math.random()*100<Math.min(40,s.spd*1.5),dmg=Math.round((s.pow*2+Math.random()*s.pow)*swordMult()*(crit?1.6:1));
+  me.rotation.y=Math.atan2(best.x-p.x,best.z-p.z);best.wob=.25;best.hp-=dmg;floater(best.x,2.4,best.z,dmg,crit?'crit':'');
+  const k=best.st;let up=0;S.xp=S.xp||{};
+  if(k==='coin'){S.coins+=best.Z.m;up=1;floater(p.x,2.8,p.z,'+'+best.Z.m+' coins','good')}
+  else{S.xp[k]=(S.xp[k]||0)+best.Z.m;let need=6+s[k]*1.5;while(S.xp[k]>=need){S.xp[k]-=need;s[k]++;up++;need=6+s[k]*1.5}
+    if(up)floater(p.x,2.8,p.z,'+'+up+' '+STATS.find(t=>t.k===k).name,'good')}
+  if(best.hp<=0){best.hp=best.Z.hp;best.down=.5;const c=best.Z.m*4;S.coins+=c;floater(best.x,1.5,best.z,'+'+c+' coins','good')}
+  if(up||best.down>0){save();hud()}
+}
+function setMarquee(){
+  const b=BOSSES[S.beaten];
+  const c=textCanvas(1024,180,g=>{g.fillStyle='#f4ebdc';g.fillRect(0,0,1024,180);g.fillStyle='#1d1626';g.textAlign='center';g.textBaseline='middle';
+    g.font='bold 72px "Barlow Condensed","Arial Narrow",Arial,sans-serif';g.fillText(S.done?'WELTERWEIGHT CHAMPION':('YOU vs '+b.name).toUpperCase(),512,64,980);
+    g.fillStyle='#b3202a';g.font='bold 48px "Barlow Condensed","Arial Narrow",Arial,sans-serif';g.fillText(S.done?'LAST BELL GYM, PHILADELPHIA':b.venue.toUpperCase(),512,134,980)});
+  marquee.material.map.dispose();marquee.material.map=new T.CanvasTexture(c);
+  if(rival)scene.remove(rival);rival=null;
+  if(!S.done){rival=person(Object.assign({shirt:'#2b2b33'},b.look));rival.position.set(5,0,-22);rival.rotation.y=.3}
+}
+/* ---------- the ring ---------- */
+function buildRing(){
+  flat(80,80,0x15121b,RX,-1,0);
+  box(7.8,1,7.8,0x2a2035,RX,-.5,0);
+  matCanvas=textCanvas(512,512,()=>{});matTex=new T.CanvasTexture(matCanvas);
+  flat(7.2,7.2,new T.MeshLambertMaterial({map:matTex}),RX,.01,0);
+  [[-3.6,-3.6,0xb3202a],[3.6,3.6,0x27407d],[-3.6,3.6,0xd8d2c6],[3.6,-3.6,0xd8d2c6]].forEach(p=>box(.24,1.5,.24,p[2],RX+p[0],.75,p[1]));
+  [.5,.9,1.3].forEach((y,i)=>{const c=[0xb3202a,0xf4ebdc,0x27407d][i];box(7.2,.05,.05,c,RX,y,-3.6);box(7.2,.05,.05,c,RX,y,3.6);box(.05,.05,7.2,c,RX-3.6,y,0);box(.05,.05,7.2,c,RX+3.6,y,0)});
+  const crowd=new T.CanvasTexture(textCanvas(512,256,g=>{g.fillStyle='#0b0910';g.fillRect(0,0,512,256);
+    for(let i=0;i<1500;i++){const y=Math.random()*256;g.fillStyle=`hsl(${Math.random()*360|0},${20+Math.random()*30}%,${18+y/256*30}%)`;g.beginPath();g.arc(Math.random()*512,y,2.6,0,7);g.fill()}}));
+  for(let i=0;i<4;i++){const m=new T.Mesh(new T.PlaneGeometry(40,12),new T.MeshBasicMaterial({map:crowd,fog:false}));const a=i*Math.PI/2;
+    m.position.set(RX+Math.sin(a)*16,3.5,Math.cos(a)*16);m.rotation.y=a+Math.PI;m.rotation.order='YXZ';m.rotation.x=-.35;scene.add(m)}
+  meRing=person({skin:'#b98562',hair:'#1c1614',shorts:'#1d1d22',gloves:0xb3202a});meRing.visible=false;
+}
+function paintMat(b){
+  const g=matCanvas.getContext('2d');g.fillStyle='#3f6fa8';g.fillRect(0,0,512,512);g.strokeStyle='#f4ebdc';g.lineWidth=6;g.strokeRect(20,20,472,472);
+  g.fillStyle='#f4ebdc';g.textAlign='center';g.textBaseline='middle';g.font='bold 46px "Barlow Condensed","Arial Narrow",Arial,sans-serif';
+  const parts=b.venue.split(', ');g.fillText(parts[0].toUpperCase(),256,232,440);g.font='bold 34px "Barlow Condensed","Arial Narrow",Arial,sans-serif';g.fillText((parts.slice(1).join(', ')||'FIGHT NIGHT').toUpperCase(),256,286,440);
+  matTex.needsUpdate=true;
+}
+
+/* ---------- input ---------- */
+const keys={},inp={mx:0,my:0,jab:false,power:false,slip:false,block:false};
+let joy=null,look=null,jx=0,jy=0,padBlock=false,yaw=Math.PI;
+const coarse=matchMedia('(pointer:coarse)').matches;
+addEventListener('keydown',e=>{
+  if(e.repeat)return;const k=e.key.toLowerCase();keys[k]=true;
+  if(sheetOpen()){if(k==='enter'||k==='e'||(k===' '&&drill&&!drill.done)){e.preventDefault();drill&&!drill.done?stopDrill():sheetBtn()}return}
+  if(mode==='fight'){if(k==='j')inp.jab=true;if(k==='k')inp.power=true;if(k===' '){inp.slip=true;e.preventDefault()}}
+  else if(k==='e'||k==='enter')usePlace();
+  else if(k==='j'||k===' '){e.preventDefault();swing()}
+});
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
+addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
+const cv=$('c');
+cv.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='touch'&&e.clientX<innerWidth*.5&&!joy){joy={id:e.pointerId,x:e.clientX,y:e.clientY};const j=$('joy');j.hidden=false;j.style.left=e.clientX+'px';j.style.top=e.clientY+'px';j.firstElementChild.style.transform=''}
+  else if(!look)look={id:e.pointerId,x:e.clientX};
+});
+addEventListener('pointermove',e=>{
+  if(joy&&e.pointerId===joy.id){let dx=e.clientX-joy.x,dy=e.clientY-joy.y;const d=Math.hypot(dx,dy),m=48;if(d>m){dx*=m/d;dy*=m/d}jx=dx/m;jy=-dy/m;$('joy').firstElementChild.style.transform=`translate(${dx}px,${dy}px)`}
+  else if(look&&e.pointerId===look.id){yaw-=(e.clientX-look.x)*.006;look.x=e.clientX}
+});
+const pup=e=>{if(joy&&e.pointerId===joy.id){joy=null;jx=jy=0;$('joy').hidden=true}if(look&&e.pointerId===look.id)look=null};
+addEventListener('pointerup',pup);addEventListener('pointercancel',pup);
+document.querySelectorAll('.pad').forEach(b=>{
+  const p=b.dataset.p;
+  b.addEventListener('pointerdown',e=>{e.preventDefault();if(p==='block'){padBlock=true;b.classList.add('on')}else inp[p]=true});
+  if(p==='block'){const off=()=>{padBlock=false;b.classList.remove('on')};b.addEventListener('pointerup',off);b.addEventListener('pointerleave',off);b.addEventListener('pointercancel',off)}
+});
+$('swing').addEventListener('pointerdown',e=>{e.preventDefault();swing()});
+addEventListener('contextmenu',e=>e.preventDefault());
+function readMove(){
+  const kx=(keys.d?1:0)-(keys.a?1:0)+(mode==='fight'?(keys.arrowright?1:0)-(keys.arrowleft?1:0):0),ky=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);
+  let x=kx+jx,y=ky+jy;const d=Math.hypot(x,y);if(d>1){x/=d;y/=d}inp.mx=x;inp.my=y;inp.block=padBlock||!!keys.l||!!keys.shift;
+}
+
+/* ---------- HUD and sheets ---------- */
+let mode='town',busy=false,sheetFns=[],drill=null,road=null,near=null;
+const sheetOpen=()=>!$('sheet').hidden;
+function hud(){
+  $('week').innerHTML=S.done?'Champion':`Week ${S.day} <span class="pips" style="display:inline-flex;vertical-align:middle">${[0,1,2].map(i=>`<span class="pip ${i<S.slots?'on':''}"></span>`).join('')}</span>`;
+  const b=BOSSES[Math.min(S.beaten,4)];
+  $('obj').textContent=S.done?'The belt is yours. The gym is still open.':`Next fight: ${b.name}, ${b.venue}`;
+  $('chips').innerHTML=STATS.map(t=>`<span>${t.short} <b>${S.stats[t.k]}</b></span>`).join('')+`<span>Hit <b>${Math.round(S.stats.pow*2.5*swordMult())}</b></span><span>Coins <b>${S.coins}</b></span><span>${SWORDS[S.sword].n} <b>+${S.up}</b></span>`;
+}
+function sheet(html,btns){
+  sheetFns=btns.map(b=>b[1]);
+  $('sheet').innerHTML=html+`<div class="row">${btns.map((b,i)=>`<button class="${i?'ghost':'cta'}" data-i="${i}">${b[0]}</button>`).join('')}</div>`;
+  $('sheet').hidden=false;busy=true;$('prompt').hidden=true;
+}
+function closeSheet(){$('sheet').hidden=true;busy=false;drill=null}
+function sheetBtn(i=0){const f=sheetFns[i];if(f)f()}
+$('sheet').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(b)sheetBtn(+b.dataset.i)});
+const say=(who,text,btns)=>sheet(`<div class="who">${who}</div><p>${text}</p>`,btns||[['OK',closeSheet]]);
+function fade(text,fn){const f=$('fade');f.textContent=text;f.classList.add('on');setTimeout(()=>{fn();setTimeout(()=>f.classList.remove('on'),500)},450)}
+function useSlot(){S.slots--;if(S.slots<=0){S.day++;S.slots=3;fade('Week '+S.day,()=>{})}hud();save()}
+function readiness(b){const s=S.stats,avg=(s.pow+s.grd+s.spd+s.sta+s.foc)/5;
+  return avg>=b.lvl+1.5?'You’re ready. Go take it.':avg>=b.lvl-1?'It’ll be close. Fight smart.':'You’re not ready yet. But a loss will teach you something.'}
+$('menu').addEventListener('click',()=>{
+  if(mode==='fight'||sheetOpen())return;
+  sheet(`<div class="who">Last Bell Gym</div><p class="big">How to play</p>
+   <p><b>Move:</b> W A S D, or drag on the left half of a touch screen. <b>Look around:</b> drag anywhere else, or use the left and right arrow keys.</p>
+   <p><b>Teleport:</b> tap Teleport and pick a place to appear there instantly. You can still walk around the yard inside the brick wall.</p>
+   <p><b>Farm damage:</b> teleport to a dummy field and stand inside the gold circle around a dummy. You attack it automatically for as long as you stay in the circle. Each dummy trains something different: Power, Defense, Footwork, Conditioning, Composure or coins. Tougher fields open as you beat bosses and build Power much faster.</p>
+   <p><b>Train:</b> go to any equipment, or the track that runs along the wall. Each drill uses one of three sessions a week.</p>
+   <p><b>Fight:</b> go to the Fight Night gate. Block ordinary cuts, dodge the big ones, and hit back when he is open.</p>
+   <p><b>Swords:</b> buy better swords at the Sword Shop, and train on the dummy to level your sword up. Both make every hit stronger.</p>
+   ${S.perks.length?'<p><b>Learned:</b> '+BOSSES.filter(x=>x.perk&&has(x.perk.k)).map(x=>x.perk.name).join(', ')+'</p>':''}`,
+   [['Back to the street',closeSheet],['Start a new career',()=>say('New career','This erases your weeks of training and every win.',[['Keep my career',closeSheet],['Erase and restart',()=>{S=fresh();save();closeSheet();me.position.set(0,0,4);me.userData.gR.material.color.setHex(SWORDS[0].c);setMarquee();hud();intro()}]])]]);
+});
+function intro(){
+  say('Coach Marisol Vega','There you are. Five fights stand between you and the welterweight title: Philadelphia, London, Mexico City, Tokyo, then Isaiah Crane in Las Vegas. Everything is here inside the wall. Tap Teleport to jump straight to any spot, three training sessions a week. Buy a better sword at the Sword Shop when you have the coins, and level it up on the training dummy in the yard. To farm damage, teleport to the Wooden dummy field and hit the dummies as much as you like. When you want the fight, teleport to the Fight Night gate.',
+    [['Let’s work',()=>{S.met=true;save();closeSheet()}]]);
+}
+
+/* ---------- town loop ---------- */
+function usePlace(){
+  if(busy||!near||mode!=='town')return;const p=near;
+  if(p.talk==='coach'){const b=BOSSES[S.beaten];return S.done?say('Coach Marisol Vega','Forty and one. I’ll never get tired of saying it. Now get back on the bag, champ.'):say('Coach Marisol Vega',`${b.name}. ${b.meta}.<br><br>${b.scout} ${readiness(b)}`)}
+  if(p.talk==='rival'){const b=BOSSES[S.beaten];return say(`${b.name}, “${b.tag}”`,`“${b.quote}”`)}
+  if(p.walker)return say('Neighbour',p.walker.lines[Math.random()*p.walker.lines.length|0]);
+  if(p.fight){const b=BOSSES[S.beaten];
+    return sheet(`<div class="who">Fight Night · ${b.venue}</div><p class="big">${b.name}</p><p>${b.meta}</p><p>Coach Vega: “${readiness(b)}”</p>`,[[b.final?'Fight for the title':'Take the fight',()=>{closeSheet();startFight()}],['Not yet',closeSheet]])}
+  if(p.shop)return shop();
+  if(p.dummy)return S.up>=swordCap()?say('Training dummy',`Your ${SWORDS[S.sword].n.toLowerCase()} is as sharp as it gets at level ${S.up}. Buy a better sword at the shop to train further.`):startDrill('sword');
+  if(p.stat==='sta')return startRoad();
+  if(p.stat)startDrill(p.stat);
+}
+function shop(){
+  const nx=SWORDS[S.sword+1];
+  sheet(`<div class="who">Sword shop · you have ${S.coins} coins</div><p class="big">Swords</p>`+SWORDS.map((w,i)=>`<p>${i<=S.sword?'✓':'·'} <b>${w.n}</b>: +${Math.round(w.b*100)}% damage, trains to level ${5*(i+1)}${i>S.sword?', '+w.p+' coins':i===S.sword?' (yours)':''}</p>`).join('')+`<p>Each sword level from the training dummy adds another 4% damage. Win fights and train to earn coins.</p>`,
+    nx&&S.coins>=nx.p?[[`Buy ${nx.n}`,()=>{S.coins-=nx.p;S.sword++;me.userData.gR.material.color.setHex(SWORDS[S.sword].c);save();hud();shop()}],['Leave',closeSheet]]:[['Leave',closeSheet]]);
+}
+$('prompt').addEventListener('click',usePlace);
+$('tp').addEventListener('click',()=>{
+  if(mode!=='town'||sheetOpen()||road)return;
+  const list=places.filter(p=>p.name&&!(S.done&&p.fight));
+  sheet('<div class="who">Teleport</div><p class="big">Where to?</p>',list.map(p=>[p.name,()=>{closeSheet();const d=Math.hypot(p.x,p.z)||1,k=Math.max(0,d-1.7)/d;me.position.set(p.x*k,0,p.z*k);yaw=Math.atan2(p.x,p.z);me.rotation.y=yaw}]).concat(ZONES.map(Z=>[S.beaten>=Z.need?Z.n:`${Z.n} (locked)`,()=>{
+    if(S.beaten<Z.need)return say('Locked',`Beat ${Z.need} boss${Z.need>1?'es':''} to open the ${Z.n}.`);
+    closeSheet();me.position.set(Z.x-7.5,0,Z.z-7.8);yaw=me.rotation.y=Math.PI}])).concat([['Stay here',closeSheet]]));
+});
+function townStep(dt,t){
+  const f=[Math.sin(yaw),Math.cos(yaw)],r=[-f[1],f[0]];
+  if(keys.arrowleft)yaw+=dt*2.2;if(keys.arrowright)yaw-=dt*2.2;
+  const sp=5.2+S.stats.spd*.05,vx=(f[0]*inp.my+r[0]*inp.mx)*sp,vz=(f[1]*inp.my+r[1]*inp.mx)*sp,mv=Math.hypot(vx,vz);
+  const p=me.position;
+  if(mv>.2){if(!blocked(p.x+vx*dt,p.z))p.x+=vx*dt;if(!blocked(p.x,p.z+vz*dt))p.z+=vz*dt;
+    let d=Math.atan2(vx,vz)-me.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));me.rotation.y+=d*Math.min(1,dt*12)}
+  const k=Math.min(1,mv/sp);legs(me,t*11,k);armsWalk(me,t*11,k);
+  if(swingT>0){swingT-=dt;const q=1-swingT/.35;arm(me,1,lerp(-2.7,-.3,q),-.15)}
+  dummies.forEach(d=>{d.wob=Math.max(0,d.wob-dt);d.g.rotation.x=Math.sin(d.wob*40)*d.wob*1.2;if(d.down>0){d.down-=dt;d.g.visible=d.down<=0}});
+  $('swing').hidden=busy||!!road;
+  if(dt&&!road&&swingT<=0&&dummies.some(d=>Math.hypot(d.x-p.x,d.z-p.z)<1.5))swing();
+  walkers.forEach(w=>{const u=w.userData,W=u.w,close=Math.hypot(w.position.x-p.x,w.position.z-p.z)<2.2;
+    if(!close){u.k+=u.dir*dt*1.5/Math.hypot(W.b[0]-W.a[0],W.b[1]-W.a[1]);if(u.k>1||u.k<0){u.dir*=-1;u.k=Math.max(0,Math.min(1,u.k))}
+      w.position.set(lerp(W.a[0],W.b[0],u.k),0,lerp(W.a[1],W.b[1],u.k));w.rotation.y=Math.atan2((W.b[0]-W.a[0])*u.dir,(W.b[1]-W.a[1])*u.dir)}
+    legs(w,t*7+u.ph,close?0:.6);armsWalk(w,t*7+u.ph,close?0:.6)});
+  arm(partner,0,-.7,-1.7);arm(partner,1,-.7,-1.7);partner.userData.body.position.y=Math.abs(Math.sin(t*5))*.04;partner.rotation.y=Math.sin(t*.6)*.8;
+  gymRoof.visible=!(p.x>-35.5&&p.x<-12.5&&p.z>-30.5&&p.z<-11.5);
+  if(road){
+    road.t+=dt;$('timer').textContent=road.t.toFixed(1)+' s';const ring=rings[road.i];
+    if(Math.hypot(ring.position.x-p.x,ring.position.z-p.z)<2.4){ring.visible=false;road.i++;if(road.i>=rings.length)endRoad();else rings[road.i].visible=true}
+    near=null;$('prompt').hidden=true;
+  }else{
+    near=null;let best=1e9;
+    places.concat(walkers.map(w=>({x:w.position.x,z:w.position.z,r:2.2,walker:w.userData.w}))).forEach(q=>{
+      if(S.done&&(q.fight||q.talk==='rival'))return;const d=Math.hypot(q.x-p.x,q.z-p.z);if(d<q.r&&d<best){best=d;near=q}});
+    const pr=$('prompt');
+    if(near&&!busy){const st=near.stat&&STATS.find(s=>s.k===near.stat);
+      const txt=st?st.verb:near.fight?'Fight Night doors':near.shop?'Sword shop':near.dummy?'Train on the dummy':near.talk==='coach'?'Talk to Coach Vega':near.talk==='rival'?'Talk to '+BOSSES[S.beaten].name:'Say hello';
+      const h=(coarse?'':'<kbd>E</kbd>')+txt;if(pr.dataset.h!==h){pr.innerHTML=h;pr.dataset.h=h}pr.hidden=false}
+    else pr.hidden=true;
+  }
+  const portrait=innerHeight>innerWidth,d=portrait?8.5:7;
+  cam.position.set(p.x-f[0]*d,portrait?4.6:3.9,p.z-f[1]*d);cam.lookAt(p.x,portrait?2.4:1.6,p.z);
+  sun.position.set(p.x+22,36,p.z+14);sun.target.position.set(p.x,0,p.z);
+}
+
+/* ---------- training ---------- */
+const COACH_REP=['','Again. Slower if you have to.','That’s the work. Keep it honest.','That’s a champion’s rep. Remember how it felt.'];
+function startDrill(k){
+  const t=k==='sword'?{k,name:'Sword level',drill:'Training dummy'}:STATS.find(x=>x.k===k);
+  drill={k,t,zone:20+Math.random()*60,period:Math.max(.65,1.7-(k==='sword'?S.up:S.stats[k])*.045)*1000,t0:performance.now(),pos:0,done:false};
+  sheet(`<div class="who">Training · ${t.name}</div><p class="big">${t.drill}</p><p>Stop the marker in the gold. Dead centre is worth +3 ${t.name}, the wide band +2, anywhere else +1.</p>
+    <div class="bar"><div class="zone" style="left:${drill.zone-11}%;width:22%"></div><div class="zone p" style="left:${drill.zone-3.5}%;width:7%"></div><div class="mark" id="mark"></div></div>`,
+    [['Hit it',stopDrill]]);
+}
+function stopDrill(){
+  if(!drill||drill.done)return;const d=Math.abs(drill.pos-drill.zone),g=d<=3.5?3:d<=11?2:1,t=drill.t;drill.done=true;
+  if(t.k==='sword')S.up=Math.min(swordCap(),S.up+g);else S.stats[t.k]+=g;S.coins+=g*5;
+  sheet(`<div class="who">Training · ${t.name}</div><p class="big">${['','Sloppy rep','Good rep','Perfect rep'][g]}</p><p><span class="gain">${t.name} +${g}</span>, now ${t.k==='sword'?S.up:S.stats[t.k]}. You earned ${g*5} coins.</p><p>Coach Vega: “${COACH_REP[g]}”</p>`,
+    [['Back to it',()=>{closeSheet();useSlot()}]]);
+}
+function startRoad(){road={t:0,i:0};rings.forEach((r,i)=>r.visible=i===0);$('timer').hidden=false;$('prompt').hidden=true}
+function endRoad(){
+  const par=2*Math.PI*PARK.r/(5.2+S.stats.spd*.05)*1.1,t=road.t,g=t<=par?3:t<=par*1.3?2:1;road=null;$('timer').hidden=true;S.stats.sta+=g;S.coins+=g*5;
+  sheet(`<div class="who">Training · Conditioning</div><p class="big">Lap in ${t.toFixed(1)} seconds</p><p><span class="gain">Conditioning +${g}</span>, now ${S.stats.sta}. A lap under ${par.toFixed(1)} s earns +3.</p><p>Coach Vega: “${COACH_REP[g]}”</p>`,
+    [['Catch your breath',()=>{closeSheet();useSlot()}]]);
+}
+
+/* ---------- fighting ---------- */
+let fight=null;
+const ACT={jab:{dur:.38,at:.14,cost:12},power:{dur:.72,at:.46,cost:26},slip:{dur:.42,cost:16}};
+function startFight(){
+  const b=BOSSES[S.beaten];
+  fade(b.venue,()=>{
+    mode='fight';mood(true);paintMat(b);
+    if(bossModel)scene.remove(bossModel);bossModel=person(Object.assign({sword:0xaab2ba},b.look));
+    scene.remove(meRing);meRing=person({skin:'#b98562',hair:'#1c1614',shorts:'#1d1d22',sword:SWORDS[S.sword].c});me.visible=false;
+    fight={boss:b,on:false,enraged:false,wind:false,time:0,
+      P:{x:RX,z:2.2,hp:hpMax(),max:hpMax(),st:stMax(),stMax:stMax(),act:null,t:0,hit:false,block:false,sdir:1,bonus:0,hurt:0},
+      B:{x:RX,z:-2.2,hp:b.hp,state:'idle',t:0,gap:1.6,pi:0,move:'',left:0,strike:0,flash:0}};
+    $('top').hidden=true;$('swing').hidden=true;$('fhud').hidden=false;$('bname').textContent=b.name;$('btag').textContent=b.tag;
+    document.querySelectorAll('.pad small').forEach(s=>s.hidden=coarse);
+    placeFighters(0);fightCam();
+    say(`${b.name}, “${b.tag}”`,`“${b.quote}”<br><br>Coach Vega: “Hands up. Watch what he shows you. Gold means block, red means slip, green means hit him.”`,[['Touch gloves',()=>{closeSheet();fight.on=true}]]);
+  });
+}
+function floater(x,y,z,text,cls){
+  const v=new T.Vector3(x,y,z).project(cam),el=document.createElement('span');el.className='pop '+(cls||'');el.textContent=text;
+  el.style.left=((v.x+1)/2*innerWidth+rnd(-18,18))+'px';el.style.top=((1-v.y)/2*innerHeight)+'px';document.body.appendChild(el);setTimeout(()=>el.remove(),950);
+}
+function fightStep(dt){
+  const F=fight,P=F.P,B=F.B,b=F.boss,s=S.stats;F.time+=dt;
+  let dx=B.x-P.x,dz=B.z-P.z,dist=Math.hypot(dx,dz)||.01;const fx=dx/dist,fz=dz/dist,rx=-fz,rz=fx;
+  const clampRing=o=>{o.x=Math.max(RX-3.2,Math.min(RX+3.2,o.x));o.z=Math.max(-3.2,Math.min(3.2,o.z))};
+  // you
+  P.bonus-=dt;P.hurt-=dt;
+  const blocking=!P.act&&inp.block;P.block=blocking;P.moving=0;
+  P.st=Math.min(P.stMax,P.st+dt*15*(blocking&&!has('door')?.3:1));
+  if(P.act){
+    P.t+=dt;const A=ACT[P.act];
+    if(P.act==='slip'){P.x+=rx*6.5*P.sdir*dt;P.z+=rz*6.5*P.sdir*dt}
+    else if(!P.hit&&P.t>=A.at){P.hit=true;
+      if(dist<1.95){
+        let d=P.act==='jab'?s.pow*2+Math.random()*s.pow:s.pow*5+s.foc*1.5;
+        const open=B.state==='rest'||(B.state==='recover'&&B.move==='heavy');
+        if(open)d*=1.5;
+        if(P.act==='power'&&has('stone')&&(open||(B.state==='wind'&&B.move==='heavy')))d*=1.4;
+        if(P.bonus>0){d*=has('feet')?2:1.3;P.bonus=0}
+        const crit=Math.random()*100<Math.min(40,s.spd*1.5);if(crit)d*=1.6;
+        d=Math.round(d*swordMult());B.hp-=d;B.flash=.12;floater(B.x,1.9,B.z,d,crit?'crit':'');
+        if(b.final&&!F.enraged&&B.hp>0&&B.hp<=b.hp/2){F.enraged=true;B.hp+=Math.round(b.hp*.12);floater(B.x,2.4,B.z,'Crane digs in','me')}
+      }
+    }
+    if(P.t>=A.dur)P.act=null;
+  }else{
+    const sp=(blocking?1.5:3.1)+s.spd*.04;
+    P.x+=(fx*inp.my+rx*inp.mx)*sp*dt;P.z+=(fz*inp.my+rz*inp.mx)*sp*dt;P.moving=Math.hypot(inp.mx,inp.my);
+    const go=k=>{P.act=k;P.t=0;P.hit=false;P.st-=ACT[k].cost};
+    if(inp.slip&&P.st>=ACT.slip.cost){go('slip');P.sdir=inp.mx<-.2?-1:1}
+    else if(inp.jab&&P.st>=ACT.jab.cost)go('jab');
+    else if(inp.power&&P.st>=ACT.power.cost)go('power');
+  }
+  inp.jab=inp.power=inp.slip=false;
+  clampRing(P);
+  dx=B.x-P.x;dz=B.z-P.z;dist=Math.hypot(dx,dz)||.01;
+  if(dist<.95){P.x=B.x-dx/dist*.95;P.z=B.z-dz/dist*.95;clampRing(P);dist=.95}
+  // him
+  const fast=F.enraged?.82:1,tell=(B.move==='heavy'?1.15-b.lvl*.015:.62-b.lvl*.012)*fast;
+  B.t+=dt;B.strike-=dt;B.flash-=dt;
+  const chase=k=>{if(dist>1.5){B.x-=dx/dist*b.spd*k*dt;B.z-=dz/dist*b.spd*k*dt}};
+  if(B.state==='idle'){chase(1);
+    if(B.t>=B.gap&&dist<1.9){B.move=b.pattern[B.pi++%b.pattern.length];B.t=0;if(B.move==='rest')B.state='rest';else{B.state='wind';B.left=B.move==='flurry'?3:1}}}
+  else if(B.state==='wind'){chase(.6);
+    if(B.t>=tell){
+      B.strike=.16;B.left--;
+      if(dist<2.15){
+        if(P.act==='slip'&&P.t<.36+s.spd*.004){P.bonus=1.6;floater(P.x,2,P.z,'Dodged','good')}
+        else{
+          const heavy=B.move==='heavy',raw=b.atk*(F.enraged?1.25:1)*(heavy?2.5:B.move==='flurry'?.5:1)*rnd(.92,1.08);
+          let d=blocking?raw*(heavy?.6:.3)-s.grd:raw-s.grd;d=Math.max(1,Math.round(d));
+          if(blocking)P.st=Math.max(0,P.st-(heavy?22:9));
+          P.hp-=d;if(blocking&&!heavy)floater(P.x,2,P.z,'Blocked -'+d,'good');else{P.hurt=.3;floater(P.x,2,P.z,'-'+d,'me')}
+        }
+      }
+      if(B.left>0)B.t=tell-.3;else{B.state='recover';B.t=0}
+    }}
+  else if(B.state==='recover'){if(B.t>=(B.move==='heavy'?.95:.35)){B.state='idle';B.t=0;B.gap=Math.max(.35,(1-b.lvl*.02)*fast*rnd(.7,1.3))}}
+  else if(B.state==='rest'){if(B.t>=1.9){B.state='idle';B.t=0;B.gap=.5}}
+  clampRing(B);
+  if(P.hp<=0&&B.hp>0&&has('wind')&&!F.wind){F.wind=true;P.hp=Math.round(P.max*.25);floater(P.x,2.3,P.z,'Second wind','good')}
+  if(B.hp<=0){B.hp=0;return endFight(true)}
+  if(P.hp<=0){P.hp=0;return endFight(false)}
+}
+function placeFighters(t){
+  const F=fight,P=F.P,B=F.B,b=F.boss,dx=B.x-P.x,dz=B.z-P.z,a=Math.atan2(dx,dz);
+  meRing.position.set(P.x,0,P.z);meRing.rotation.y=a;bossModel.position.set(B.x,0,B.z);bossModel.rotation.y=a+Math.PI;
+  // your pose
+  const mu=meRing.userData;mu.body.rotation.set(.08,0,0);mu.body.position.y=Math.abs(Math.sin(t*6))*.03;
+  arm(meRing,0,-.75,-1.75);arm(meRing,1,-.7,-1.8);
+  if(P.act==='jab'){const k=Math.sin(Math.min(1,P.t/ACT.jab.dur)*Math.PI);arm(meRing,1,lerp(-.75,-1.5,k),lerp(-1.75,-.05,k))}
+  else if(P.act==='power'){const u=P.t/ACT.power.dur;if(u<.55)arm(meRing,1,lerp(-.7,.5,u/.55),-1.9);else{const k=Math.sin((u-.55)/.45*Math.PI);arm(meRing,1,lerp(-.7,-1.55,k),lerp(-1.8,-.05,k))}mu.body.rotation.y=u<.55?.35*u/.55:-.3}
+  else if(P.act==='slip')mu.body.rotation.z=-.45*P.sdir*Math.sin(P.t/ACT.slip.dur*Math.PI);
+  else if(P.block){arm(meRing,0,-1.05,-2.15);arm(meRing,1,-1.05,-2.15);mu.body.rotation.x=.18}
+  legs(meRing,t*10,P.act==='slip'?.8:(P.moving||0)*.5);
+  // his pose
+  const bu=bossModel.userData;bu.body.rotation.set(.08,0,0);bu.body.position.y=Math.abs(Math.sin(t*5+1))*.03;
+  arm(bossModel,0,-.75,-1.75);arm(bossModel,1,-.7,-1.8);
+  const heavy=B.move==='heavy';let glow=0;
+  if(B.strike>0){const k=Math.sin((1-B.strike/.16)*Math.PI*.5+Math.PI*.25);const side=heavy||B.left%2===0?1:0;arm(bossModel,side,-1.5*k-.2,-.05)}
+  else if(B.state==='wind'){const tell=(heavy?1.15-b.lvl*.015:.62-b.lvl*.012)*(F.enraged?.82:1),k=Math.min(1,B.t/tell);
+    if(heavy){arm(bossModel,1,lerp(-.7,.9,k),-2);bu.body.rotation.x=-.2*k;bu.body.rotation.y=-.5*k;glow=k}else arm(bossModel,B.left%2?0:1,lerp(-.75,.1,k),-1.9)}
+  else if(B.state==='rest'||(B.state==='recover'&&heavy)){arm(bossModel,0,.05,-.3);arm(bossModel,1,.05,-.3);bu.body.rotation.x=.3}
+  if(bu.gR)bu.gR.material.emissive.setRGB(glow*.9,0,0);
+  if(B.flash>0)bu.body.rotation.x=-.25;
+  legs(bossModel,t*8,B.state==='idle'?.4:.1);
+}
+function fightCam(){
+  const P=fight.P,B=fight.B,dx=B.x-P.x,dz=B.z-P.z,d=Math.hypot(dx,dz)||1,fx=dx/d,fz=dz/d,portrait=innerHeight>innerWidth,back=portrait?4.8:3.6;
+  cam.position.set(P.x-fx*back*.85-fz*2.7,portrait?3.5:3,P.z-fz*back*.85+fx*2.7);cam.lookAt(P.x+(B.x-P.x)*.6,1.3,P.z+(B.z-P.z)*.6);
+  sun.position.set(RX+10,30,8);sun.target.position.set(RX,0,0);
+}
+function fightHud(){
+  const F=fight,P=F.P,B=F.B,b=F.boss;
+  $('bhp').style.width=Math.max(0,B.hp/b.hp*100)+'%';$('php').style.width=Math.max(0,P.hp/P.max*100)+'%';$('pst').style.width=P.st/P.stMax*100+'%';
+  const t=$('tell');let txt='',cls='';
+  if(B.state==='wind'){if(B.move==='heavy'){txt=b.moves.heavy+': dodge it';cls='slip'}else{txt=b.moves[B.move]+': block';cls='block'}}
+  else if(B.state==='rest'||(B.state==='recover'&&B.move==='heavy')){txt=(B.state==='rest'?b.moves.rest:'Off balance')+': hit him';cls='open'}
+  else if(P.bonus>0){txt='Counter now';cls='open'}
+  if(t.textContent!==txt){t.textContent=txt;t.className=cls}
+  $('hurt').style.opacity=Math.max(0,P.hurt)*1.6;
+  $('pad-power').style.opacity=P.st<ACT.power.cost?.45:1;$('pad-slip').style.opacity=P.st<ACT.slip.cost?.45:1;$('pad-jab').style.opacity=P.st<ACT.jab.cost?.45:1;
+}
+function endFight(won){
+  const F=fight,b=F.boss;F.on=false;let html,final=false;
+  if(won){
+    S.beaten++;STATS.forEach(t=>S.stats[t.k]+=2);if(b.perk)S.perks.push(b.perk.k);const prize=80*S.beaten;S.coins+=prize;
+    if(b.final){S.done=true;S.finish=S.day;final=true;const d=S.day,rank=d<=8?'Legend of the Last Bell':d<=13?'Undisputed champion':'Champion, the long way round';
+      html=`<div class="who">Title fight · ${rank}</div><p class="big">Isaiah Crane is 40–1</p><p>You took the welterweight title at the MGM Grand in week ${d}. A finish in 8 weeks or fewer earns the Legend rank.</p><p>Coach Vega: “I told you. Somebody had to be the one.”</p>`}
+    else html=`<div class="who">Won in ${Math.round(F.time)} seconds</div><p class="big">The referee waves it off</p><p>You stopped ${b.name} at ${b.venue}.</p><p><span class="gain">Every stat +2 and ${prize} coins for the sword shop.</span></p><p><span class="gain">Learned: ${b.perk.name}.</span> ${b.perk.text}</p><p>Next: ${BOSSES[S.beaten].name} at ${BOSSES[S.beaten].venue}.</p>`;
+  }else{
+    const near=F.B.hp<=b.hp/2,g=near?2:1,low=STATS.reduce((m,t)=>S.stats[t.k]<S.stats[m.k]?t:m,STATS[0]);S.stats[low.k]+=g;S.coins+=15;
+    html=`<div class="who">Knocked out</div><p class="big">The canvas is cold</p><p>${b.name} had ${Math.round(F.B.hp/b.hp*100)}% of his health left${near?'. You had him past halfway':''}.</p><p><span class="gain">Lesson learned: ${low.name} +${g}.</span> You were paid 15 coins.</p><p>Coach Vega: “We go back to the gym. Then we ask for the rematch.”</p>`;
+  }
+  save();
+  sheet(html,[['Back to the yard',()=>{closeSheet();fade('Last Bell Yard',()=>{
+    mode='town';mood(false);fight=null;meRing.visible=false;if(bossModel){scene.remove(bossModel);bossModel=null}me.visible=true;me.position.set(0,0,-20);yaw=Math.PI;
+    $('fhud').hidden=true;$('top').hidden=false;$('hurt').style.opacity=0;setMarquee();if(final){hud();save()}else useSlot()})}]]);
+}
+
+/* ---------- main loop ---------- */
+let last=0,clock=0;
+function resize(){if(!renderer)return;renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.fov=innerHeight>innerWidth?72:60;cam.updateProjectionMatrix()}
+addEventListener('resize',resize);
+function frame(now){
+  requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000||0);last=now;clock+=dt;
+  if(drill&&!drill.done){const ph=((now-drill.t0)/drill.period)%2;drill.pos=ph<1?ph*100:(2-ph)*100;const m=$('mark');if(m)m.style.left=drill.pos+'%'}
+  readMove();
+  if(mode==='town'){if(busy){inp.mx=inp.my=0}townStep(busy?0:dt,clock)}
+  else if(fight){if(fight.on&&!busy)fightStep(dt);if(fight){placeFighters(clock);fightCam();fightHud()}}
+  renderer.render(scene,cam);
+}
+function start(data){
+  S=(data&&data.stats)?data:(load()||fresh());S.coins??=30;S.sword??=0;S.up??=0;
+  if(!renderer){$('sheet').hidden=false;$('sheet').innerHTML='<p class="big">3D is not available</p><p>This game needs WebGL, and this browser or device has it switched off.</p>';return}
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
+  buildTown();buildZones();buildRing();mood(false);setMarquee();hud();resize();
+  if(!S.met)intro();
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(()=>S);
+window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
+</script>
+
+</body>
+</html>
