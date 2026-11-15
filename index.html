@@ -164,7 +164,16 @@ const WALKERS=[
   {look:{skin:'#f0c8a8',hair:'#c9c2b8',shirt:'#8a3d3d',shorts:'#3a3a3a'},a:[-6,38],b:[-6,-38],lines:['I saw Pike fight in ’09. He was slow then too. Hits hard, though.','Keep your hands up, kid. That’s the whole secret.']}
 ];
 
-const SWORDS=[{n:'Wooden sword',p:0,b:0,c:0x8a6a45},{n:'Iron sword',p:60,b:.15,c:0x8f969e},{n:'Steel longsword',p:150,b:.3,c:0xcfd6de},{n:'Knight’s blade',p:320,b:.5,c:0xe8f1fa},{n:'Champion’s greatsword',p:600,b:.75,c:0xf2b233}];
+const SWORDS=[{n:'Wooden sword',p:0,b:0,c:0x8a6a45},{n:'Iron sword',p:60,b:.15,c:0x8f969e},{n:'Steel longsword',p:150,b:.3,c:0xcfd6de},{n:'Knight\u2019s blade',p:320,b:.5,c:0xe8f1fa},{n:'Champion\u2019s greatsword',p:600,b:.75,c:0xf2b233},
+  {n:'Obsidian blade',p:1000,b:1,c:0x2a2433},{n:'Stormbreaker',p:1600,b:1.4,c:0x4fa3e0},{n:'Dragonfang',p:2600,b:1.9,c:0xd8432f},{n:'Sunforged blade',p:4200,b:2.5,c:0xffd76a},{n:'Blade of the Last Bell',p:7000,b:3.5,c:0xb98cff}];
+const UPG=[
+  {k:'dl',n:'Training dummies',max:10,base:40,d:l=>`Every training circle gives \u00d7${1+l*.5} progress per hit.`},
+  {k:'hs',n:'Quick hands',max:8,base:60,d:l=>`You swing ${Math.round(l*15)}% faster in training circles.`},
+  {k:'pc',n:'Lucky purse',max:10,base:50,d:l=>`All coins you earn are increased by ${l*25}%.`},
+  {k:'vt',n:'Vitality',max:10,base:70,d:l=>`Your health in fights is increased by ${l*10}%.`},
+  {k:'ar',n:'Armor',max:10,base:80,d:l=>`You take ${l*4}% less damage in fights.`},
+  {k:'cr',n:'Sharp eye',max:10,base:90,d:l=>`Your critical hit chance is increased by ${l*3}%.`}];
+const uCost=u=>Math.round(u.base*Math.pow((S[u.k]||0)+1,1.6)/10)*10,coinMult=()=>1+.25*(S.pc||0),critPct=()=>Math.min(70,S.stats.spd*1.5+3*(S.cr||0));
 const swordCap=()=>5*(S.sword+1),swordMult=()=>1+SWORDS[S.sword].b+S.up*.04;
 const ZONES=[{n:'Wooden dummy field',m:1,need:0,x:-260,z:260,c:0xc9a86a,hp:60},{n:'Iron dummy field',m:3,need:1,x:0,z:260,c:0x8f969e,hp:400},{n:'Stone dummy field',m:7,need:2,x:260,z:260,c:0x77736b,hp:1500},{n:'Champion\u2019s field',m:15,need:4,x:-260,z:-260,c:0xf2b233,hp:5000}];
 const AREAS=[[0,0,30]].concat(ZONES.map(Z=>[Z.x,Z.z,14])),dummies=[];let swingT=0;
@@ -175,7 +184,7 @@ const fresh=()=>({day:1,slots:3,stats:{pow:3,grd:3,spd:3,sta:3,foc:3},beaten:0,p
 const save=()=>{try{localStorage.setItem('lastbell',JSON.stringify(S))}catch(e){}};
 const load=()=>{try{const d=JSON.parse(localStorage.getItem('lastbell'));if(d&&d.stats)return d}catch(e){}return null};
 const has=k=>S.perks.includes(k);
-const hpMax=()=>40+S.stats.sta*8, stMax=()=>100+S.stats.foc*5;
+const hpMax=()=>Math.round((40+S.stats.sta*8)*(1+.1*(S.vt||0))), stMax=()=>100+S.stats.foc*5;
 
 /* ---------- three setup ---------- */
 const T=THREE;
@@ -295,7 +304,7 @@ function buildTown(){
   label('Training dummy',dx,3,dz,.55);places.push({x:dx,z:dz,r:2.2,dummy:true,name:'Training dummy'});
   // sword shop
   box(6,3.6,4,0x6e5a44,13,1.8,-13.5);solid(13,-13.5,6,4);box(6.4,.15,1.8,0xb3202a,13,3,-10.8);
-  SWORDS.forEach((w,k)=>box(.09,1.3,.03,w.c,11+k*.7,1.1,-11.45).rotation.z=.12);
+  SWORDS.forEach((w,k)=>box(.09,1.3,.03,w.c,10.4+k*.58,1.1,-11.45).rotation.z=.12);
   label('Sword Shop',13,4.8,-11.5,.9);places.push({x:13,z:-10.3,r:2.6,shop:true,name:'Sword shop'});
   const keeper=person({skin:'#caa07a',hair:'#6b6b6b',beard:true,shirt:'#4a3a2a',shorts:'#2b2b33'});keeper.position.set(15.2,0,-10.6);
   // upgrade shop
@@ -334,19 +343,19 @@ function buildZones(){
     label(st==='coin'?'Coins':STATS.find(t=>t.k===st).name,x,3,z,.42);dummies.push({x,z,g:d,hp:Z.hp,Z,wob:0,down:0,st})}
 })}
 function swing(){
-  if(mode!=='town'||busy||road||swingT>0)return;swingT=.35;const p=me.position,s=S.stats;let best=null,bd=2.4;
+  if(mode!=='town'||busy||road||swingT>0)return;swingT=.35/(1+.15*(S.hs||0));const p=me.position,s=S.stats;let best=null,bd=2.4;
   dummies.forEach(d=>{const q=Math.hypot(d.x-p.x,d.z-p.z);if(q<bd&&d.down<=0){bd=q;best=d}});
   if(!best)return;
-  const crit=Math.random()*100<Math.min(40,s.spd*1.5),dmg=Math.round((s.pow*2+Math.random()*s.pow)*swordMult()*(crit?1.6:1));
+  const crit=Math.random()*100<critPct(),dmg=Math.round((s.pow*2+Math.random()*s.pow)*swordMult()*(crit?1.6:1));
   me.rotation.y=Math.atan2(best.x-p.x,best.z-p.z);best.wob=.25;best.hp-=dmg;if(!best.quiet)floater(best.x,2.4,best.z,dmg,crit?'crit':'');
   const k=best.st,m=best.Z.m*dMult();let up=0;S.xp=S.xp||{};
-  if(k==='coin'){S.coins+=Math.round(m);up=1;floater(p.x,2.8,p.z,'+'+Math.round(m)+' coins','good')}
+  if(k==='coin'){const cg=Math.round(m*coinMult());S.coins+=cg;up=1;floater(p.x,2.8,p.z,'+'+cg+' coins','good')}
   else if(k==='sword'){
     if(S.up>=swordCap()){if(Math.random()<.12)floater(p.x,2.8,p.z,'Sword maxed, buy a better one','good')}
     else{S.xp.sword=(S.xp.sword||0)+m;const need=8+S.up*2;if(S.xp.sword>=need){S.xp.sword-=need;S.up++;up=1;floater(p.x,2.8,p.z,'+1 Sword level','good')}}}
   else{S.xp[k]=(S.xp[k]||0)+m*(k==='spd'?3:1);let need=6+s[k]*1.5;while(S.xp[k]>=need){S.xp[k]-=need;s[k]++;up++;need=6+s[k]*1.5}
     if(up)floater(p.x,2.8,p.z,'+'+up+' '+STATS.find(t=>t.k===k).name,'good')}
-  if(best.hp<=0){best.hp=best.Z.hp;best.down=.5;const c=best.Z.m*4;S.coins+=c;floater(best.x,1.5,best.z,'+'+c+' coins','good')}
+  if(best.hp<=0){best.hp=best.Z.hp;best.down=.5;const c=Math.round(best.Z.m*4*coinMult());S.coins+=c;floater(best.x,1.5,best.z,'+'+c+' coins','good')}
   if(up||best.down>0){save();hud()}
 }
 function setMarquee(){
@@ -433,7 +442,7 @@ function closeSheet(){$('sheet').hidden=true;busy=false;drill=null}
 function sheetBtn(i=0){const f=sheetFns[i];if(f)f()}
 $('sheet').addEventListener('click',e=>{const y=e.target.closest('[data-buy]');
   if(y){const id=y.dataset.buy;
-    if(id==='dummy'){const c=dCost();if(S.coins<c)return;S.coins-=c;S.dl=(S.dl||0)+1}
+    if(id[0]==='u'){const u=UPG.find(x=>x.k===id.slice(2)),c=uCost(u);if(S.coins<c||(S[u.k]||0)>=u.max)return;S.coins-=c;S[u.k]=(S[u.k]||0)+1}
     else{const i=+id.slice(1),w=SWORDS[i];if(S.coins<w.p)return;S.coins-=w.p;S.sword=i;me.userData.gR.material.color.setHex(w.c)}
     save();hud();upgradeShop();return}
   const b=e.target.closest('[data-i]');if(b)sheetBtn(+b.dataset.i)});
@@ -482,7 +491,7 @@ function upgradeShop(){
   const item=(title,desc,btn)=>`<div class="item"><div><b>${title}</b><div class="d">${desc}</div></div>${btn}</div>`;
   const buy=(id,cost)=>S.coins>=cost?`<button class="cta" data-buy="${id}">${cost} coins</button>`:`<button class="ghost" disabled>${cost} coins</button>`;
   let h=`<div class="who">Shop \u00b7 you have ${S.coins} coins</div><p class="big">Upgrades</p>`;
-  h+=item(`Training dummies, level ${l}`,l>=10?`Fully upgraded. Every training circle gives \u00d7${dMult()} progress per hit.`:`Every training circle gives \u00d7${dMult()} progress per hit. Level ${l+1} gives \u00d7${dMult()+.5}.`,l>=10?'<span class="own">Max</span>':buy('dummy',c));
+  UPG.forEach(u=>{const v=S[u.k]||0;h+=item(`${u.n}, level ${v}`,v>=u.max?u.d(v)+' Fully upgraded.':`${u.d(v)} Next level: ${u.d(v+1).toLowerCase()}`,v>=u.max?'<span class="own">Max</span>':buy('u:'+u.k,uCost(u)))});
   h+=`<p class="big" style="margin-top:14px">Swords</p>`;
   SWORDS.forEach((w,i)=>{h+=item(w.n,`+${Math.round(w.b*100)}% damage, trains to level ${5*(i+1)}`,i===S.sword?'<span class="own">Yours</span>':i<S.sword?'<span class="own">Owned</span>':buy('s'+i,w.p))});
   sheet(h,[['Leave',closeSheet]]);$('sheet').scrollTop=keep;
@@ -594,7 +603,7 @@ function fightStep(dt){
         if(open)d*=1.5;
         if(P.act==='power'&&has('stone')&&(open||(B.state==='wind'&&B.move==='heavy')))d*=1.4;
         if(P.bonus>0){d*=has('feet')?2:1.3;P.bonus=0}
-        const crit=Math.random()*100<Math.min(40,s.spd*1.5);if(crit)d*=1.6;
+        const crit=Math.random()*100<critPct();if(crit)d*=1.6;
         d=Math.round(d*swordMult());B.hp-=d;B.flash=.12;floater(B.x,1.9,B.z,d,crit?'crit':'');
         if(b.final&&!F.enraged&&B.hp>0&&B.hp<=b.hp/2){F.enraged=true;B.hp+=Math.round(b.hp*.12);floater(B.x,2.4,B.z,'Crane digs in','me')}
       }
@@ -625,7 +634,7 @@ function fightStep(dt){
         if(P.act==='slip'&&P.t<.36+s.spd*.004){P.bonus=1.6;floater(P.x,2,P.z,'Dodged','good')}
         else{
           const heavy=B.move==='heavy',raw=b.atk*(F.enraged?1.25:1)*(heavy?2.5:B.move==='flurry'?.5:1)*rnd(.92,1.08);
-          let d=blocking?raw*(heavy?.6:.3)-s.grd:raw-s.grd;d=Math.max(1,Math.round(d));
+          let d=blocking?raw*(heavy?.6:.3)-s.grd:raw-s.grd;d=Math.max(1,Math.round(d*(1-.04*(S.ar||0))));
           if(blocking)P.st=Math.max(0,P.st-(heavy?22:9));
           P.hp-=d;if(blocking&&!heavy)floater(P.x,2,P.z,'Blocked -'+d,'good');else{P.hurt=.3;floater(P.x,2,P.z,'-'+d,'me')}
         }
@@ -681,7 +690,7 @@ function fightHud(){
 function endFight(won){
   const F=fight,b=F.boss;F.on=false;let html,final=false;
   if(won){
-    S.beaten++;STATS.forEach(t=>S.stats[t.k]+=2);if(b.perk)S.perks.push(b.perk.k);const prize=80*S.beaten;S.coins+=prize;
+    S.beaten++;STATS.forEach(t=>S.stats[t.k]+=2);if(b.perk)S.perks.push(b.perk.k);const prize=Math.round(80*S.beaten*coinMult());S.coins+=prize;
     if(b.final){S.done=true;S.finish=S.day;final=true;const d=S.day,rank=d<=8?'Legend of the Last Bell':d<=13?'Undisputed champion':'Champion, the long way round';
       html=`<div class="who">Title fight · ${rank}</div><p class="big">Isaiah Crane is 40–1</p><p>You took the welterweight title at the MGM Grand in week ${d}. A finish in 8 weeks or fewer earns the Legend rank.</p><p>Coach Vega: “I told you. Somebody had to be the one.”</p>`}
     else html=`<div class="who">Won in ${Math.round(F.time)} seconds</div><p class="big">The referee waves it off</p><p>You stopped ${b.name} at ${b.venue}.</p><p><span class="gain">Every stat +2 and ${prize} coins for the sword shop.</span></p><p><span class="gain">Learned: ${b.perk.name}.</span> ${b.perk.text}</p><p>Next: ${BOSSES[S.beaten].name} at ${BOSSES[S.beaten].venue}.</p>`;
