@@ -163,6 +163,7 @@ const SWORDS=[{n:'Wooden sword',p:0,b:0,c:0x8a6a45},{n:'Iron sword',p:60,b:.15,c
 const swordCap=()=>5*(S.sword+1),swordMult=()=>1+SWORDS[S.sword].b+S.up*.04;
 const ZONES=[{n:'Wooden dummy field',m:1,need:0,x:-260,z:260,c:0xc9a86a,hp:60},{n:'Iron dummy field',m:3,need:1,x:0,z:260,c:0x8f969e,hp:400},{n:'Stone dummy field',m:7,need:2,x:260,z:260,c:0x77736b,hp:1500},{n:'Champion\u2019s field',m:15,need:4,x:-260,z:-260,c:0xf2b233,hp:5000}];
 const AREAS=[[0,0,30]].concat(ZONES.map(Z=>[Z.x,Z.z,14])),dummies=[];let swingT=0;
+const dMult=()=>1+(S.dl||0)*.5,dCost=()=>Math.round(40*Math.pow((S.dl||0)+1,1.6)/10)*10;
 /* ---------- save ---------- */
 let S;
 const fresh=()=>({day:1,slots:3,stats:{pow:3,grd:3,spd:3,sta:3,foc:3},beaten:0,perks:[],done:false,finish:0,met:false,coins:30,sword:0,up:0});
@@ -329,12 +330,12 @@ function swing(){
   if(!best)return;
   const crit=Math.random()*100<Math.min(40,s.spd*1.5),dmg=Math.round((s.pow*2+Math.random()*s.pow)*swordMult()*(crit?1.6:1));
   me.rotation.y=Math.atan2(best.x-p.x,best.z-p.z);best.wob=.25;best.hp-=dmg;if(!best.quiet)floater(best.x,2.4,best.z,dmg,crit?'crit':'');
-  const k=best.st;let up=0;S.xp=S.xp||{};
-  if(k==='coin'){S.coins+=best.Z.m;up=1;floater(p.x,2.8,p.z,'+'+best.Z.m+' coins','good')}
+  const k=best.st,m=best.Z.m*dMult();let up=0;S.xp=S.xp||{};
+  if(k==='coin'){S.coins+=Math.round(m);up=1;floater(p.x,2.8,p.z,'+'+Math.round(m)+' coins','good')}
   else if(k==='sword'){
     if(S.up>=swordCap()){if(Math.random()<.12)floater(p.x,2.8,p.z,'Sword maxed, buy a better one','good')}
-    else{S.xp.sword=(S.xp.sword||0)+best.Z.m;const need=8+S.up*2;if(S.xp.sword>=need){S.xp.sword-=need;S.up++;up=1;floater(p.x,2.8,p.z,'+1 Sword level','good')}}}
-  else{S.xp[k]=(S.xp[k]||0)+best.Z.m;let need=6+s[k]*1.5;while(S.xp[k]>=need){S.xp[k]-=need;s[k]++;up++;need=6+s[k]*1.5}
+    else{S.xp.sword=(S.xp.sword||0)+m;const need=8+S.up*2;if(S.xp.sword>=need){S.xp.sword-=need;S.up++;up=1;floater(p.x,2.8,p.z,'+1 Sword level','good')}}}
+  else{S.xp[k]=(S.xp[k]||0)+m;let need=6+s[k]*1.5;while(S.xp[k]>=need){S.xp[k]-=need;s[k]++;up++;need=6+s[k]*1.5}
     if(up)floater(p.x,2.8,p.z,'+'+up+' '+STATS.find(t=>t.k===k).name,'good')}
   if(best.hp<=0){best.hp=best.Z.hp;best.down=.5;const c=best.Z.m*4;S.coins+=c;floater(best.x,1.5,best.z,'+'+c+' coins','good')}
   if(up||best.down>0){save();hud()}
@@ -412,7 +413,7 @@ function hud(){
   $('week').innerHTML=S.done?'Champion':`Week ${S.day} <span class="pips" style="display:inline-flex;vertical-align:middle">${[0,1,2].map(i=>`<span class="pip ${i<S.slots?'on':''}"></span>`).join('')}</span>`;
   const b=BOSSES[Math.min(S.beaten,4)];
   $('obj').textContent=S.done?'The belt is yours. The gym is still open.':`Next fight: ${b.name}, ${b.venue}`;
-  $('chips').innerHTML=STATS.map(t=>`<span>${t.short} <b>${S.stats[t.k]}</b></span>`).join('')+`<span>Hit <b>${Math.round(S.stats.pow*2.5*swordMult())}</b></span><span>Coins <b>${S.coins}</b></span><span>${SWORDS[S.sword].n} <b>+${S.up}</b></span>`;
+  $('chips').innerHTML=STATS.map(t=>`<span>${t.short} <b>${S.stats[t.k]}</b></span>`).join('')+`<span>Dummies <b>Lv ${S.dl||0}</b></span><span>Hit <b>${Math.round(S.stats.pow*2.5*swordMult())}</b></span><span>Coins <b>${S.coins}</b></span><span>${SWORDS[S.sword].n} <b>+${S.up}</b></span>`;
 }
 function sheet(html,btns){
   sheetFns=btns.map(b=>b[1]);
@@ -435,6 +436,7 @@ $('menu').addEventListener('click',()=>{
    <p><b>Farm damage:</b> teleport to a dummy field and stand inside the gold circle around a dummy. You attack it automatically for as long as you stay in the circle. Each dummy trains something different: Power, Defense, Footwork, Conditioning, Composure or coins. Tougher fields open as you beat bosses and build Power much faster.</p>
    <p><b>Train:</b> every station in the yard has a gold circle. Stand in it and you train automatically for as long as you stay: heavy bag for Power, sparring for Defense, jump rope for Footwork, the track for Conditioning, film study for Composure, and the training dummy for your sword level.</p>
    <p><b>Fight:</b> go to the Fight Night gate. Block ordinary cuts, dodge the big ones, and hit back when he is open.</p>
+   <p><b>Dummy upgrades:</b> at the training dummy in the yard, tap Upgrade dummies to spend coins on dummy levels. Each level makes every training circle give more progress per hit, up to level 10.</p>
    <p><b>Swords:</b> buy better swords at the Sword Shop, and train on the dummy to level your sword up. Both make every hit stronger.</p>
    ${S.perks.length?'<p><b>Learned:</b> '+BOSSES.filter(x=>x.perk&&has(x.perk.k)).map(x=>x.perk.name).join(', ')+'</p>':''}`,
    [['Back to the street',closeSheet],['Start a new career',()=>say('New career','This erases your weeks of training and every win.',[['Keep my career',closeSheet],['Erase and restart',()=>{S=fresh();save();closeSheet();me.position.set(0,0,4);me.userData.gR.material.color.setHex(SWORDS[0].c);setMarquee();hud();intro()}]])]]);
@@ -453,9 +455,16 @@ function usePlace(){
   if(p.fight){const b=BOSSES[S.beaten];
     return sheet(`<div class="who">Fight Night · ${b.venue}</div><p class="big">${b.name}</p><p>${b.meta}</p><p>Coach Vega: “${readiness(b)}”</p>`,[[b.final?'Fight for the title':'Take the fight',()=>{closeSheet();startFight()}],['Not yet',closeSheet]])}
   if(p.shop)return shop();
-  if(p.dummy)return S.up>=swordCap()?say('Training dummy',`Your ${SWORDS[S.sword].n.toLowerCase()} is as sharp as it gets at level ${S.up}. Buy a better sword at the shop to train further.`):startDrill('sword');
+  if(p.dummy)return dummyShop();
   if(p.stat==='sta')return startRoad();
   if(p.stat)startDrill(p.stat);
+}
+function dummyShop(){
+  const l=S.dl||0,c=dCost(),max=l>=10;
+  sheet(`<div class="who">Training dummy upgrades \u00b7 you have ${S.coins} coins</div><p class="big">Dummy level ${l}</p>
+    <p>Every training circle, in the yard and in the dummy fields, now gives <b>\u00d7${dMult()}</b> progress per hit.</p>
+    <p>${max?'Your dummies are fully upgraded.':`Level ${l+1} gives \u00d7${dMult()+.5} and costs ${c} coins.`}</p>`,
+    !max&&S.coins>=c?[[`Upgrade for ${c} coins`,()=>{S.coins-=c;S.dl=l+1;save();hud();dummyShop()}],['Leave',closeSheet]]:[['Leave',closeSheet]]);
 }
 function shop(){
   const nx=SWORDS[S.sword+1];
@@ -495,10 +504,10 @@ function townStep(dt,t){
   }else{
     near=null;let best=1e9;
     places.concat(walkers.map(w=>({x:w.position.x,z:w.position.z,r:2.2,walker:w.userData.w}))).forEach(q=>{
-      if(q.stat||q.dummy||(S.done&&(q.fight||q.talk==='rival')))return;const d=Math.hypot(q.x-p.x,q.z-p.z);if(d<q.r&&d<best){best=d;near=q}});
+      if(q.stat||(S.done&&(q.fight||q.talk==='rival')))return;const d=Math.hypot(q.x-p.x,q.z-p.z);if(d<q.r&&d<best){best=d;near=q}});
     const pr=$('prompt');
     if(near&&!busy){const st=near.stat&&STATS.find(s=>s.k===near.stat);
-      const txt=st?st.verb:near.fight?'Fight Night doors':near.shop?'Sword shop':near.dummy?'Train on the dummy':near.talk==='coach'?'Talk to Coach Vega':near.talk==='rival'?'Talk to '+BOSSES[S.beaten].name:'Say hello';
+      const txt=st?st.verb:near.fight?'Fight Night doors':near.shop?'Sword shop':near.dummy?'Upgrade dummies':near.talk==='coach'?'Talk to Coach Vega':near.talk==='rival'?'Talk to '+BOSSES[S.beaten].name:'Say hello';
       const h=(coarse?'':'<kbd>E</kbd>')+txt;if(pr.dataset.h!==h){pr.innerHTML=h;pr.dataset.h=h}pr.hidden=false}
     else pr.hidden=true;
   }
