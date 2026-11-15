@@ -266,7 +266,7 @@ const lerp=(a,b,k)=>a+(b-a)*k;
 const places=[];  // things you can walk up to
 let gymRoof,marquee,rival,coach,partner,walkers=[],rings=[],me,meRing,bossModel,matTex,matCanvas;
 const PARK={x:0,z:0,r:25};
-const R=30;let trainer,trainerLabel;const trainerMat=mat(0xc9a86a);
+const R=30;let darkNow=false,hallLight;let trainer,trainerLabel;const trainerMat=mat(0xc9a86a);
 const TRAINERS=[['Straw trainer',0xc9a86a],['Wooden trainer',0x9a6b3f],['Iron trainer',0x8f969e],['Steel trainer',0xcfd6de],['Stone trainer',0x77736b],['Bronze trainer',0xb87333],['Silver trainer',0xdfe6ee],['Gold trainer',0xf2b233],['Crystal trainer',0x7fd6e8],['Obsidian trainer',0x2a2433],['Champion trainer',0xb98cff]];
 function squareRoom(cx,cz,half,h){
   flat(half*2,half*2,0xa7a399,cx,.02,cz);
@@ -321,6 +321,18 @@ function buildTown(){
   const rbag=new T.Mesh(new T.CylinderGeometry(.3,.3,1.3,16),mat(0x7a1f1f));rbag.position.set(rbx,1.85,rbz);rbag.castShadow=true;scene.add(rbag);solid(rbx,rbz,.6,.6);
   box(.8,.9,.8,0x6b4a2e,13.2,.45,-5.6);solid(13.2,-5.6,.8,.8);const bell=new T.Mesh(new T.SphereGeometry(.28,16,10,0,Math.PI*2,0,Math.PI/2),mat(0xc9a227));bell.position.set(13.2,.9,-5.6);scene.add(bell);
   label('Boxing Ring',bx,4.8,bz,.9);
+  // arena hall: a wall with a door in front of the ring, a roof, a dark floor and a crowd
+  const wm=mat(0x7a4436);box(.5,7,28.4,wm,11,3.5,-15.8);box(.5,7,28.4,wm,11,3.5,15.8);box(.5,3.6,3.2,wm,11,5.2,0);solid(11,-15.8,.5,28.4);solid(11,15.8,.5,28.4);
+  box(.7,3.4,.3,0x3a2a1a,11,1.7,-1.6);box(.7,3.4,.3,0x3a2a1a,11,1.7,1.6);box(.7,.3,3.5,0x3a2a1a,11,3.45,0);
+  const dl=box(.12,3.2,1.5,0x6b4a2e,10.3,1.6,-2.1);dl.rotation.y=.5;const dr=box(.12,3.2,1.5,0x6b4a2e,10.3,1.6,2.1);dr.rotation.y=-.5;
+  label('Boxing Arena',10.4,5.6,0,.9);
+  box(19.4,.3,60.4,0x2b2b30,20.6,7.2,0);flat(18.6,59.6,0x26222d,20.4,.035,0);
+  hallLight=new T.PointLight(0xfff4e0,1.7,30);hallLight.position.set(19,6.2,0);scene.add(hallLight);
+  const fanG=new T.BoxGeometry(.5,1.3,.35),headG=new T.SphereGeometry(.17,10,8),fanC=[0x3f7d6e,0xc9a227,0x8a3d3d,0x27407d,0x8a8f98,0x6a4a5f,0xd8d2c6],skinC=[0xd9a57e,0x8d5a3b,0xe8b796,0x6b4329,0xc68a5e];
+  const fan=(x,y,z)=>{const b=new T.Mesh(fanG,mat(fanC[Math.random()*7|0]));b.position.set(x,y+.65,z);scene.add(b);const h=new T.Mesh(headG,mat(skinC[Math.random()*5|0]));h.position.set(x,y+1.5,z);scene.add(h)};
+  for(let k=0;k<13;k++){fan(25.6,.5,-6.6+k*1.1);fan(26.8,1,-6.05+k*1.1)}
+  for(let k=0;k<9;k++)[[6.2,0],[7.3,.5],[-6.2,0],[-7.3,.5],[8.4,0],[-8.4,0]].forEach(q=>fan(14.8+k*1.05+q[1],0,q[0]));
+  solid(19.3,7.3,9.6,3);solid(19.3,-7.3,9.6,3);
   // coach
   coach=person({skin:'#b9805a',hair:'#3a2a20',shirt:'#b3202a',shorts:'#22242b'});coach.position.set(3,0,-6);coach.rotation.y=.3;
   label('Coach Vega',3,2.9,-6,.55);places.push({x:3,z:-6,r:2.4,talk:'coach',name:'Coach Vega'});
@@ -331,7 +343,7 @@ function buildTown(){
   label('Fight Night',0,7.9,-29,1.2);places.push({x:0,z:-26.5,r:3,fight:true,name:'Fight Night gate'});
   places.push({x:5,z:-22,r:2.2,talk:'rival'});
   [[9,20],[-9,20],[-21,-8],[21,8]].forEach(p=>lamp(p[0],p[1]));
-  const paths=[[[-20,6],[20,6]],[[7,-8],[7,19]],[[-5,19],[-5,-18]]];
+  const paths=[[[-18,6],[8,6]],[[7,-8],[7,19]],[[-5,19],[-5,-18]]];
   WALKERS.forEach((w,k)=>{w.a=paths[k][0];w.b=paths[k][1];const p=person(w.look);p.position.set(w.a[0],0,w.a[1]);p.userData.w=w;p.userData.k=Math.random();p.userData.dir=1;walkers.push(p)});
   me=person({skin:'#b98562',hair:'#1c1614',shirt:'#8a8f98',shorts:'#1d1d22',sword:SWORDS[S.sword].c});me.position.set(0,0,4);
 }
@@ -523,6 +535,8 @@ function townStep(dt,t){
   if(swingT>0){swingT-=dt;const q=1-swingT/.35;arm(me,1,lerp(-2.7,-.3,q),-.15)}
   dummies.forEach(d=>{d.wob=Math.max(0,d.wob-dt);d.g.rotation.x=Math.sin(d.wob*40)*d.wob*1.2;if(d.down>0){d.down-=dt;d.g.visible=d.down<=0}});
   $('swing').hidden=busy||!!road;
+  const inHall=p.x>11&&p.x<31&&Math.abs(p.z)<31;
+  if(inHall!==darkNow){darkNow=inHall;const c=inHall?0x0b0910:0x9cc4e4;scene.background=new T.Color(c);scene.fog=inHall?new T.Fog(c,18,60):new T.Fog(c,45,150);hemi.intensity=inHall?.42:.8;sun.intensity=inHall?.12:.9}
   if(dt&&!road&&swingT<=0&&dummies.some(d=>Math.hypot(d.x-p.x,d.z-p.z)<1.22))swing();
   walkers.forEach(w=>{const u=w.userData,W=u.w,close=Math.hypot(w.position.x-p.x,w.position.z-p.z)<2.2;
     if(!close){u.k+=u.dir*dt*1.5/Math.hypot(W.b[0]-W.a[0],W.b[1]-W.a[1]);if(u.k>1||u.k<0){u.dir*=-1;u.k=Math.max(0,Math.min(1,u.k))}
@@ -545,7 +559,8 @@ function townStep(dt,t){
     else pr.hidden=true;
   }
   const portrait=innerHeight>innerWidth,d=portrait?8.5:7;
-  cam.position.set(p.x-f[0]*d,portrait?4.6:3.9,p.z-f[1]*d);cam.lookAt(p.x,portrait?2.4:1.6,p.z);
+  cam.position.set(p.x-f[0]*d,portrait?4.6:3.9,p.z-f[1]*d);
+  if(Math.abs(p.z)<31&&Math.abs(p.x)<31){if(p.x>11.3)cam.position.x=Math.max(cam.position.x,11.5);else cam.position.x=Math.min(cam.position.x,10.6)}cam.lookAt(p.x,portrait?2.4:1.6,p.z);
   sun.position.set(p.x+22,36,p.z+14);sun.target.position.set(p.x,0,p.z);
 }
 
