@@ -153,11 +153,41 @@ const BOSSES=[
    perk:{k:'wind',name:'Second Wind',text:'Once per fight, a knockout blow leaves you standing with a quarter of your health.'},
    look:{skin:'#e3b48a',hair:'#111111',shorts:'#b3202a'}},
   {name:'Isaiah Crane',tag:'The Verdict',venue:'MGM Grand Garden Arena, Las Vegas',meta:'Age 31 · 40–0, 31 KO · Orthodox · Detroit, USA',
-   lvl:19,hp:2850,atk:40,spd:3.1,final:true,pattern:['strike','flurry','heavy','strike','rest','heavy','flurry','strike','rest'],
+   lvl:19,hp:2850,atk:40,spd:3.1,pattern:['strike','flurry','heavy','strike','rest','heavy','flurry','strike','rest'],
    moves:{strike:'Champion’s cut',flurry:'Title combination',heavy:'The Verdict',rest:'Plays to the crowd'},
    scout:'He has no bad habits, only patterns. Stay alive through the first half. Once you hurt him he will come at you faster and harder.',
    quote:'Forty came before you. Enjoy the walk to the ring.',
-   look:{skin:'#6b4329',hair:'#120e0c',beard:true,shorts:'#c9a227'}}
+   look:{skin:'#6b4329',hair:'#120e0c',beard:true,shorts:'#c9a227'}},
+  {name:'Viktor Dragan',tag:'The Anvil',venue:'\u0160tark Arena, Belgrade',meta:'Age 33 \u00b7 38\u20131, 30 KO \u00b7 Orthodox \u00b7 Belgrade, Serbia',
+   lvl:26,hp:4500,atk:53,spd:3.1,pattern:['heavy','strike','strike','rest','flurry','heavy'],
+   moves:{strike:'Short cut',flurry:'Hammer combination',heavy:'Anvil drop',rest:'Rolls his neck'},
+   scout:'He opens with the big one. Dodge first, hit second. Never trade with him when he is fresh.',
+   quote:'You beat a champion. I break champions.',
+   look:{skin:'#e0b999',hair:'#3a2a20',beard:true,shorts:'#7a1f1f'}},
+  {name:'Thabo Nkosi',tag:'Lightning',venue:'Emperors Palace, Johannesburg',meta:'Age 26 \u00b7 29\u20130, 17 KO \u00b7 Southpaw \u00b7 Soweto, South Africa',
+   lvl:34,hp:7000,atk:67,spd:3.5,pattern:['flurry','flurry','strike','rest','heavy','flurry','strike'],
+   moves:{strike:'Flash cut',flurry:'Lightning combination',heavy:'Thunderclap',rest:'Dances back'},
+   scout:'Fastest hands you have seen. Two combinations in a row, so keep that guard up twice before you answer.',
+   quote:'By the time you hear me, I already hit you.',
+   look:{skin:'#5a3824',hair:'#0f0c0a',shorts:'#f2b233'}},
+  {name:'Lars Eriksen',tag:'The Glacier',venue:'Oslo Spektrum, Oslo',meta:'Age 35 \u00b7 44\u20132, 36 KO \u00b7 Orthodox \u00b7 Troms\u00f8, Norway',
+   lvl:44,hp:11000,atk:85,spd:3.0,pattern:['strike','heavy','strike','heavy','rest','flurry','heavy'],
+   moves:{strike:'Cold cut',flurry:'Avalanche',heavy:'Icebreaker',rest:'Breathes out slowly'},
+   scout:'Slow feet, but every third thing he throws is a finisher. If you are not dodging you are losing.',
+   quote:'I am patient. You will get tired. They all get tired.',
+   look:{skin:'#f0d2bd',hair:'#d8c9a0',beard:true,shorts:'#9be7ff'}},
+  {name:'Mateus Carvalho',tag:'O Furac\u00e3o',venue:'Gin\u00e1sio do Ibirapuera, S\u00e3o Paulo',meta:'Age 28 \u00b7 41\u20130, 35 KO \u00b7 Switch-hitter \u00b7 Salvador, Brazil',
+   lvl:56,hp:17000,atk:107,spd:3.6,pattern:['flurry','heavy','flurry','strike','heavy','rest','flurry','heavy','strike'],
+   moves:{strike:'Whip cut',flurry:'Hurricane combination',heavy:'Eye of the storm',rest:'Shakes his head, smiling'},
+   scout:'He never gives you the same look twice in a row. Watch the colour of the warning, not his hands.',
+   quote:'The storm does not hate the house. It just goes through it.',
+   look:{skin:'#b97a50',hair:'#1a1210',shorts:'#1f7a4d'}},
+  {name:'Gideon Vale',tag:'The Last Bell',venue:'Madison Square Garden, New York',meta:'Age 38 \u00b7 52\u20130, 49 KO \u00b7 Orthodox \u00b7 Brooklyn, USA',
+   lvl:70,hp:26000,atk:132,spd:3.6,final:true,pattern:['strike','flurry','heavy','strike','heavy','rest','flurry','heavy','flurry','strike','heavy','rest'],
+   moves:{strike:'Bell ringer',flurry:'Closing combination',heavy:'The Last Bell',rest:'Raises his arms to the crowd'},
+   scout:'The gym is named after what he does to people. Everything you have trained was for this. Hurt him and he gets faster and stronger.',
+   quote:'They named a gym after my right hand. Come and see why.',
+   look:{skin:'#9a6a4a',hair:'#8f8f8f',beard:true,shorts:'#15151a'}}
 ];
 const WALKERS=[
   {look:{skin:'#d9a57e',hair:'#5a3a22',shirt:'#3f7d6e',shorts:'#2b2b33'},a:[-40,6],b:[40,6],lines:['You fight out of Last Bell? Vega trained my uncle. He still can’t hear out of one ear.','Road’s quiet today. Good day for roadwork in the park.']},
@@ -176,7 +206,7 @@ const UPG=[
   {k:'cr',n:'Sharp eye',max:10,base:90,d:l=>`Your critical hit chance is increased by ${l*3}%.`}];
 const uCost=u=>Math.round(u.base*Math.pow((S[u.k]||0)+1,1.6)/10)*10,coinMult=()=>1+.25*(S.pc||0),critPct=()=>Math.min(70,S.stats.spd*1.5+3*(S.cr||0));
 const swordCap=()=>5*(S.sword+1),swordMult=()=>1+SWORDS[S.sword].b+S.up*.04;
-const ZONES=[{n:'Beginner room',m:1,need:0,x:-260,z:260,c:0xc9a86a,hp:60},{n:'Fighter room',m:3,need:2,x:0,z:260,c:0x8f969e,hp:400},{n:'Veteran room',m:7,need:4,x:260,z:260,c:0x77736b,hp:1500},{n:'Champion\u2019s room',m:15,need:5,x:-260,z:-260,c:0xf2b233,hp:5000}];
+const ZONES=[{n:'Beginner room',m:1,need:0,x:-260,z:260,c:0xc9a86a,hp:60},{n:'Fighter room',m:3,need:2,x:0,z:260,c:0x8f969e,hp:400},{n:'Veteran room',m:7,need:4,x:260,z:260,c:0x77736b,hp:1500},{n:'Champion\u2019s room',m:15,need:7,x:-260,z:-260,c:0xf2b233,hp:5000}];
 const AREAS=[[0,0,30]].concat(ZONES.map(Z=>[Z.x,Z.z,14])),dummies=[];let swingT=0;
 const dMult=()=>1+(S.dl||0)*.5,dCost=()=>Math.round(40*Math.pow((S.dl||0)+1,1.6)/10)*10;
 /* ---------- save ---------- */
@@ -458,7 +488,7 @@ let mode='town',busy=false,sheetFns=[],drill=null,road=null,near=null;
 const sheetOpen=()=>!$('sheet').hidden;
 function hud(){
   $('week').innerHTML=S.done?'Champion':`Week ${S.day} <span class="pips" style="display:inline-flex;vertical-align:middle">${[0,1,2].map(i=>`<span class="pip ${i<S.slots?'on':''}"></span>`).join('')}</span>`;
-  const b=BOSSES[Math.min(S.beaten,4)];
+  const b=BOSSES[Math.min(S.beaten,BOSSES.length-1)];
   $('obj').textContent=S.done?'The belt is yours. The gym is still open.':`Next fight: ${b.name}, ${b.venue}`;
   $('chips').innerHTML=STATS.map(t=>`<span>${t.short} <b>${S.stats[t.k]}</b></span>`).join('')+`<span><b>${TRAINERS[Math.min(10,S.dl||0)][0]}</b></span><span>Hit <b>${Math.round(S.stats.pow*2.5*swordMult())}</b></span><span>Coins <b>${S.coins}</b></span><span>${SWORDS[S.sword].n} <b>+${S.up}</b></span>`;
 }
@@ -495,14 +525,14 @@ $('menu').addEventListener('click',()=>{
    [['Back to the street',closeSheet],['Start a new career',()=>say('New career','This erases your weeks of training and every win.',[['Keep my career',closeSheet],['Erase and restart',()=>{S=fresh();save();closeSheet();me.position.set(0,0,4);me.userData.gR.material.color.setHex(SWORDS[0].c);setTrainer();setMarquee();hud();intro()}]])]]);
 });
 function intro(){
-  say('Coach Marisol Vega','There you are. Five fights stand between you and the welterweight title: Philadelphia, London, Mexico City, Tokyo, then Isaiah Crane in Las Vegas. The four stores stand in a row along the left wall, away from the Boxing Arena door. All training happens in the training rooms: go to the Training Store to pick a room, or the Training Ground stall to go straight to your best one, and stand in the gold circle around a dummy. Buy a better sword at the Sword Shop when you have the coins, and level it up at the Sword level dummy in a training room. When you want the fight, teleport to the Boxing Arena door.',
+  say('Coach Marisol Vega','There you are. Ten fights stand between you and the top. The first five take you through Philadelphia, London, Mexico City, Tokyo and Las Vegas for the welterweight title, and five harder ones come after that. The four stores stand in a row along the left wall, away from the Boxing Arena door. All training happens in the training rooms: go to the Training Store to pick a room, or the Training Ground stall to go straight to your best one, and stand in the gold circle around a dummy. Buy a better sword at the Sword Shop when you have the coins, and level it up at the Sword level dummy in a training room. When you want the fight, teleport to the Boxing Arena door.',
     [['Let’s work',()=>{S.met=true;save();closeSheet()}]]);
 }
 
 /* ---------- town loop ---------- */
 function usePlace(){
   if(busy||!near||mode!=='town')return;const p=near;
-  if(p.talk==='coach'){const b=BOSSES[S.beaten];return S.done?say('Coach Marisol Vega','Forty and one. I’ll never get tired of saying it. Now get back on the bag, champ.'):say('Coach Marisol Vega',`${b.name}. ${b.meta}.<br><br>${b.scout} ${readiness(b)}`)}
+  if(p.talk==='coach'){const b=BOSSES[S.beaten];return S.done?say('Coach Marisol Vega','Ten fights, ten wins. I’ll never get tired of saying it. Now get back on the bag, champ.'):say('Coach Marisol Vega',`${b.name}. ${b.meta}.<br><br>${b.scout} ${readiness(b)}`)}
   if(p.talk==='rival'){const b=BOSSES[S.beaten];return say(`${b.name}, “${b.tag}”`,`“${b.quote}”`)}
   if(p.walker)return say('Neighbour',p.walker.lines[Math.random()*p.walker.lines.length|0]);
   if(p.fight){const b=BOSSES[S.beaten];
@@ -641,7 +671,7 @@ function fightStep(dt){
         if(P.bonus>0){d*=has('feet')?2:1.3;P.bonus=0}
         const crit=Math.random()*100<critPct();if(crit)d*=1.6;
         d=Math.round(d*swordMult());B.hp-=d;B.flash=.12;floater(B.x,1.9,B.z,d,crit?'crit':'');
-        if(b.final&&!F.enraged&&B.hp>0&&B.hp<=b.hp/2){F.enraged=true;B.hp+=Math.round(b.hp*.12);floater(B.x,2.4,B.z,'Crane digs in','me')}
+        if(b.final&&!F.enraged&&B.hp>0&&B.hp<=b.hp/2){F.enraged=true;B.hp+=Math.round(b.hp*.12);floater(B.x,2.4,B.z,b.name.split(' ')[1]+' digs in','me')}
       }
     }
     if(P.t>=A.dur)P.act=null;
@@ -658,7 +688,7 @@ function fightStep(dt){
   dx=B.x-P.x;dz=B.z-P.z;dist=Math.hypot(dx,dz)||.01;
   if(dist<.95){P.x=B.x-dx/dist*.95;P.z=B.z-dz/dist*.95;clampRing(P);dist=.95}
   // him
-  const fast=F.enraged?.82:1,tell=(B.move==='heavy'?1.15-b.lvl*.015:.62-b.lvl*.012)*fast;
+  const fast=F.enraged?.82:1,tell=(B.move==='heavy'?1.15-Math.min(b.lvl,20)*.015:.62-Math.min(b.lvl,20)*.012)*fast;
   B.t+=dt;B.strike-=dt;B.flash-=dt;
   const chase=k=>{if(dist>1.5){B.x-=dx/dist*b.spd*k*dt;B.z-=dz/dist*b.spd*k*dt}};
   if(B.state==='idle'){chase(1);
@@ -700,7 +730,7 @@ function placeFighters(t){
   arm(bossModel,0,-.75,-1.75);arm(bossModel,1,-.7,-1.8);
   const heavy=B.move==='heavy';let glow=0;
   if(B.strike>0){const k=Math.sin((1-B.strike/.16)*Math.PI*.5+Math.PI*.25);const side=heavy||B.left%2===0?1:0;arm(bossModel,side,-1.5*k-.2,-.05)}
-  else if(B.state==='wind'){const tell=(heavy?1.15-b.lvl*.015:.62-b.lvl*.012)*(F.enraged?.82:1),k=Math.min(1,B.t/tell);
+  else if(B.state==='wind'){const tell=(heavy?1.15-Math.min(b.lvl,20)*.015:.62-Math.min(b.lvl,20)*.012)*(F.enraged?.82:1),k=Math.min(1,B.t/tell);
     if(heavy){arm(bossModel,1,lerp(-.7,.9,k),-2);bu.body.rotation.x=-.2*k;bu.body.rotation.y=-.5*k;glow=k}else arm(bossModel,B.left%2?0:1,lerp(-.75,.1,k),-1.9)}
   else if(B.state==='rest'||(B.state==='recover'&&heavy)){arm(bossModel,0,.05,-.3);arm(bossModel,1,.05,-.3);bu.body.rotation.x=.3}
   if(bu.gR)bu.gR.material.emissive.setRGB(glow*.9,0,0);
@@ -728,8 +758,8 @@ function endFight(won){
   if(won){
     S.beaten++;STATS.forEach(t=>S.stats[t.k]+=2);if(b.perk)S.perks.push(b.perk.k);const prize=Math.round(80*S.beaten*coinMult());S.coins+=prize;
     if(b.final){S.done=true;S.finish=S.day;final=true;const d=S.day,rank=d<=8?'Legend of the Last Bell':d<=13?'Undisputed champion':'Champion, the long way round';
-      html=`<div class="who">Title fight · ${rank}</div><p class="big">Isaiah Crane is 40–1</p><p>You took the welterweight title at the MGM Grand in week ${d}. A finish in 8 weeks or fewer earns the Legend rank.</p><p>Coach Vega: “I told you. Somebody had to be the one.”</p>`}
-    else html=`<div class="who">Won in ${Math.round(F.time)} seconds</div><p class="big">The referee waves it off</p><p>You stopped ${b.name} at ${b.venue}.</p><p><span class="gain">Every stat +2 and ${prize} coins for the sword shop.</span></p><p><span class="gain">Learned: ${b.perk.name}.</span> ${b.perk.text}</p><p>Next: ${BOSSES[S.beaten].name} at ${BOSSES[S.beaten].venue}.</p>`;
+      html=`<div class="who">Title fight · ${rank}</div><p class="big">${b.name} is beaten</p><p>You won all ten fights and finished it at ${b.venue} in week ${d}. A finish in 8 weeks or fewer earns the Legend rank.</p><p>Coach Vega: “I told you. Somebody had to be the one.”</p>`}
+    else html=`<div class="who">Won in ${Math.round(F.time)} seconds</div><p class="big">The referee waves it off</p><p>You stopped ${b.name} at ${b.venue}.</p><p><span class="gain">Every stat +2 and ${prize} coins for the sword shop.</span></p>${b.perk?`<p><span class="gain">Learned: ${b.perk.name}.</span> ${b.perk.text}</p>`:''}<p>Next: ${BOSSES[S.beaten].name} at ${BOSSES[S.beaten].venue}.</p>`;
   }else{
     const near=F.B.hp<=b.hp/2,g=near?2:1,low=STATS.reduce((m,t)=>S.stats[t.k]<S.stats[m.k]?t:m,STATS[0]);S.stats[low.k]+=g;S.coins+=15;
     html=`<div class="who">Knocked out</div><p class="big">The canvas is cold</p><p>${b.name} had ${Math.round(F.B.hp/b.hp*100)}% of his health left${near?'. You had him past halfway':''}.</p><p><span class="gain">Lesson learned: ${low.name} +${g}.</span> You were paid 15 coins.</p><p>Coach Vega: “We go back to the gym. Then we ask for the rematch.”</p>`;
@@ -753,7 +783,7 @@ function frame(now){
   renderer.render(scene,cam);
 }
 function start(data){
-  S=(data&&data.stats)?data:(load()||fresh());S.coins??=30;S.sword??=0;S.up??=0;
+  S=(data&&data.stats)?data:(load()||fresh());if(S.beaten<BOSSES.length)S.done=false;S.coins??=30;S.sword??=0;S.up??=0;
   if(!renderer){$('sheet').hidden=false;$('sheet').innerHTML='<p class="big">3D is not available</p><p>This game needs WebGL, and this browser or device has it switched off.</p>';return}
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
   buildTown();buildZones();setTrainer();buildRing();mood(false);setMarquee();hud();resize();
