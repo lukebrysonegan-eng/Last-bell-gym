@@ -176,7 +176,7 @@ const UPG=[
   {k:'cr',n:'Sharp eye',max:10,base:90,d:l=>`Your critical hit chance is increased by ${l*3}%.`}];
 const uCost=u=>Math.round(u.base*Math.pow((S[u.k]||0)+1,1.6)/10)*10,coinMult=()=>1+.25*(S.pc||0),critPct=()=>Math.min(70,S.stats.spd*1.5+3*(S.cr||0));
 const swordCap=()=>5*(S.sword+1),swordMult=()=>1+SWORDS[S.sword].b+S.up*.04;
-const ZONES=[{n:'Beginner room',m:1,need:0,x:-260,z:260,c:0xc9a86a,hp:60},{n:'Fighter room',m:3,need:1,x:0,z:260,c:0x8f969e,hp:400},{n:'Veteran room',m:7,need:2,x:260,z:260,c:0x77736b,hp:1500},{n:'Champion\u2019s room',m:15,need:4,x:-260,z:-260,c:0xf2b233,hp:5000}];
+const ZONES=[{n:'Beginner room',m:1,need:0,x:-260,z:260,c:0xc9a86a,hp:60},{n:'Fighter room',m:3,need:2,x:0,z:260,c:0x8f969e,hp:400},{n:'Veteran room',m:7,need:4,x:260,z:260,c:0x77736b,hp:1500},{n:'Champion\u2019s room',m:15,need:5,x:-260,z:-260,c:0xf2b233,hp:5000}];
 const AREAS=[[0,0,30]].concat(ZONES.map(Z=>[Z.x,Z.z,14])),dummies=[];let swingT=0;
 const dMult=()=>1+(S.dl||0)*.5,dCost=()=>Math.round(40*Math.pow((S.dl||0)+1,1.6)/10)*10;
 /* ---------- save ---------- */
