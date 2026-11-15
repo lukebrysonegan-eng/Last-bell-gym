@@ -47,6 +47,11 @@ button:focus-visible{outline:3px solid var(--bell);outline-offset:2px}
 #timer{position:fixed;top:calc(var(--gt) + 110px);left:50%;transform:translateX(-50%);font-family:var(--display);font-size:26px;padding:6px 16px;font-variant-numeric:tabular-nums}
 
 .sheet{position:fixed;left:50%;transform:translateX(-50%);bottom:var(--gb);width:min(560px,calc(100% - 32px));padding:16px 18px;max-height:70%;overflow:auto}
+.sheet{touch-action:pan-y;overscroll-behavior:contain;background:rgba(29,22,38,.97);z-index:3}
+.item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--rope)}
+.item>div{min-width:0}.item .d{color:var(--dust);font-size:14px}.item button{flex:none}
+.own{font-family:var(--num);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mint)}
+button:disabled{opacity:.5;cursor:not-allowed}
 .sheet .who{font-family:var(--num);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--bell);font-size:15px}
 .sheet .big{font-family:var(--display);font-size:24px;text-transform:uppercase;line-height:1.05;margin:2px 0 6px}
 .sheet p{margin:6px 0}
@@ -426,7 +431,12 @@ function sheet(html,btns){
 }
 function closeSheet(){$('sheet').hidden=true;busy=false;drill=null}
 function sheetBtn(i=0){const f=sheetFns[i];if(f)f()}
-$('sheet').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(b)sheetBtn(+b.dataset.i)});
+$('sheet').addEventListener('click',e=>{const y=e.target.closest('[data-buy]');
+  if(y){const id=y.dataset.buy;
+    if(id==='dummy'){const c=dCost();if(S.coins<c)return;S.coins-=c;S.dl=(S.dl||0)+1}
+    else{const i=+id.slice(1),w=SWORDS[i];if(S.coins<w.p)return;S.coins-=w.p;S.sword=i;me.userData.gR.material.color.setHex(w.c)}
+    save();hud();upgradeShop();return}
+  const b=e.target.closest('[data-i]');if(b)sheetBtn(+b.dataset.i)});
 const say=(who,text,btns)=>sheet(`<div class="who">${who}</div><p>${text}</p>`,btns||[['OK',closeSheet]]);
 function fade(text,fn){const f=$('fade');f.textContent=text;f.classList.add('on');setTimeout(()=>{fn();setTimeout(()=>f.classList.remove('on'),500)},450)}
 function useSlot(){S.slots--;if(S.slots<=0){S.day++;S.slots=3;fade('Week '+S.day,()=>{})}hud();save()}
@@ -464,22 +474,18 @@ function usePlace(){
   if(p.stat==='sta')return startRoad();
   if(p.stat)startDrill(p.stat);
 }
-function dummyShop(){
-  const l=S.dl||0,c=dCost(),max=l>=10;
-  sheet(`<div class="who">Training dummy upgrades \u00b7 you have ${S.coins} coins</div><p class="big">Dummy level ${l}</p>
-    <p>Every training circle, in the yard and in the dummy fields, now gives <b>\u00d7${dMult()}</b> progress per hit.</p>
-    <p>${max?'Your dummies are fully upgraded.':`Level ${l+1} gives \u00d7${dMult()+.5} and costs ${c} coins.`}</p>`,
-    !max&&S.coins>=c?[[`Upgrade for ${c} coins`,()=>{S.coins-=c;S.dl=l+1;save();hud();dummyShop()}],['Leave',closeSheet]]:[['Leave',closeSheet]]);
-}
-function shop(){
-  const nx=SWORDS[S.sword+1];
-  sheet(`<div class="who">Sword shop · you have ${S.coins} coins</div><p class="big">Swords</p>`+SWORDS.map((w,i)=>`<p>${i<=S.sword?'✓':'·'} <b>${w.n}</b>: +${Math.round(w.b*100)}% damage, trains to level ${5*(i+1)}${i>S.sword?', '+w.p+' coins':i===S.sword?' (yours)':''}</p>`).join('')+`<p>Each sword level from the training dummy adds another 4% damage. Win fights and train to earn coins.</p>`,
-    nx&&S.coins>=nx.p?[[`Buy ${nx.n}`,()=>{S.coins-=nx.p;S.sword++;me.userData.gR.material.color.setHex(SWORDS[S.sword].c);save();hud();shop()}],['Leave',closeSheet]]:[['Leave',closeSheet]]);
-}
 $('prompt').addEventListener('click',usePlace);
+function dummyShop(){upgradeShop()}
+function shop(){upgradeShop()}
 function upgradeShop(){
-  sheet(`<div class="who">Upgrade shop · you have ${S.coins} coins</div><p class="big">What do you want to upgrade?</p><p>Your dummies are level ${S.dl||0}. Your sword is the ${SWORDS[S.sword].n.toLowerCase()}, level ${S.up}.</p>`,
-    [['Dummy upgrades',dummyShop],['Swords',shop],['Leave',closeSheet]]);
+  const l=S.dl||0,c=dCost(),keep=sheetOpen()?$('sheet').scrollTop:0;
+  const item=(title,desc,btn)=>`<div class="item"><div><b>${title}</b><div class="d">${desc}</div></div>${btn}</div>`;
+  const buy=(id,cost)=>S.coins>=cost?`<button class="cta" data-buy="${id}">${cost} coins</button>`:`<button class="ghost" disabled>${cost} coins</button>`;
+  let h=`<div class="who">Shop \u00b7 you have ${S.coins} coins</div><p class="big">Upgrades</p>`;
+  h+=item(`Training dummies, level ${l}`,l>=10?`Fully upgraded. Every training circle gives \u00d7${dMult()} progress per hit.`:`Every training circle gives \u00d7${dMult()} progress per hit. Level ${l+1} gives \u00d7${dMult()+.5}.`,l>=10?'<span class="own">Max</span>':buy('dummy',c));
+  h+=`<p class="big" style="margin-top:14px">Swords</p>`;
+  SWORDS.forEach((w,i)=>{h+=item(w.n,`+${Math.round(w.b*100)}% damage, trains to level ${5*(i+1)}`,i===S.sword?'<span class="own">Yours</span>':i<S.sword?'<span class="own">Owned</span>':buy('s'+i,w.p))});
+  sheet(h,[['Leave',closeSheet]]);$('sheet').scrollTop=keep;
 }
 $('shopb').addEventListener('click',()=>{if(mode!=='town'||sheetOpen()||road)return;upgradeShop()});
 $('tp').addEventListener('click',()=>{
