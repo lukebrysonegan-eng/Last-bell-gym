@@ -87,7 +87,7 @@ button:focus-visible{outline:3px solid var(--bell);outline-offset:2px}
 <canvas id="c"></canvas>
 <div id="top">
   <div id="status" class="glass"><div class="wk"><span>Last <em>Bell</em></span><span id="week"></span></div><div id="obj"></div><div id="chips"></div></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button id="tp" class="glass tb">Teleport</button><button id="menu" class="glass tb">Menu</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button id="shopb" class="glass tb">Shop</button><button id="tp" class="glass tb">Teleport</button><button id="menu" class="glass tb">Menu</button></div>
 </div>
 <button id="prompt" hidden></button>
 <div id="timer" class="glass" hidden></div>
@@ -293,6 +293,10 @@ function buildTown(){
   SWORDS.forEach((w,k)=>box(.09,1.3,.03,w.c,11+k*.7,1.1,-11.45).rotation.z=.12);
   label('Sword Shop',13,4.8,-11.5,.9);places.push({x:13,z:-10.3,r:2.6,shop:true,name:'Sword shop'});
   const keeper=person({skin:'#caa07a',hair:'#6b6b6b',beard:true,shirt:'#4a3a2a',shorts:'#2b2b33'});keeper.position.set(15.2,0,-10.6);
+  // upgrade shop
+  box(5,3.6,4,0x4a5568,19,1.8,2);solid(19,2,5,4);box(5.4,.15,1.8,0x27407d,19,3,4.7);
+  label('Upgrade Shop',19,4.8,4,.9);places.push({x:19,z:5.6,r:2.6,upg:true,name:'Upgrade shop'});
+  const clerk=person({skin:'#8d5a3b',hair:'#111111',shirt:'#27407d',shorts:'#2b2b33'});clerk.position.set(20.7,0,4.9);
   // coach
   coach=person({skin:'#b9805a',hair:'#3a2a20',shirt:'#b3202a',shorts:'#22242b'});coach.position.set(3,0,-6);coach.rotation.y=.3;
   label('Coach Vega',3,2.9,-6,.55);places.push({x:3,z:-6,r:2.4,talk:'coach',name:'Coach Vega'});
@@ -436,7 +440,7 @@ $('menu').addEventListener('click',()=>{
    <p><b>Farm damage:</b> teleport to a dummy field and stand inside the gold circle around a dummy. You attack it automatically for as long as you stay in the circle. Each dummy trains something different: Power, Defense, Footwork, Conditioning, Composure or coins. Tougher fields open as you beat bosses and build Power much faster.</p>
    <p><b>Train:</b> every station in the yard has a gold circle. Stand in it and you train automatically for as long as you stay: heavy bag for Power, sparring for Defense, jump rope for Footwork, the track for Conditioning, film study for Composure, and the training dummy for your sword level.</p>
    <p><b>Fight:</b> go to the Fight Night gate. Block ordinary cuts, dodge the big ones, and hit back when he is open.</p>
-   <p><b>Dummy upgrades:</b> at the training dummy in the yard, tap Upgrade dummies to spend coins on dummy levels. Each level makes every training circle give more progress per hit, up to level 10.</p>
+   <p><b>Dummy upgrades:</b> tap the Shop button at the top of the screen, or teleport to the Upgrade Shop, and spend coins on dummy levels. Each level makes every training circle give more progress per hit, up to level 10.</p>
    <p><b>Swords:</b> buy better swords at the Sword Shop, and train on the dummy to level your sword up. Both make every hit stronger.</p>
    ${S.perks.length?'<p><b>Learned:</b> '+BOSSES.filter(x=>x.perk&&has(x.perk.k)).map(x=>x.perk.name).join(', ')+'</p>':''}`,
    [['Back to the street',closeSheet],['Start a new career',()=>say('New career','This erases your weeks of training and every win.',[['Keep my career',closeSheet],['Erase and restart',()=>{S=fresh();save();closeSheet();me.position.set(0,0,4);me.userData.gR.material.color.setHex(SWORDS[0].c);setMarquee();hud();intro()}]])]]);
@@ -454,6 +458,7 @@ function usePlace(){
   if(p.walker)return say('Neighbour',p.walker.lines[Math.random()*p.walker.lines.length|0]);
   if(p.fight){const b=BOSSES[S.beaten];
     return sheet(`<div class="who">Fight Night · ${b.venue}</div><p class="big">${b.name}</p><p>${b.meta}</p><p>Coach Vega: “${readiness(b)}”</p>`,[[b.final?'Fight for the title':'Take the fight',()=>{closeSheet();startFight()}],['Not yet',closeSheet]])}
+  if(p.upg)return upgradeShop();
   if(p.shop)return shop();
   if(p.dummy)return dummyShop();
   if(p.stat==='sta')return startRoad();
@@ -472,6 +477,11 @@ function shop(){
     nx&&S.coins>=nx.p?[[`Buy ${nx.n}`,()=>{S.coins-=nx.p;S.sword++;me.userData.gR.material.color.setHex(SWORDS[S.sword].c);save();hud();shop()}],['Leave',closeSheet]]:[['Leave',closeSheet]]);
 }
 $('prompt').addEventListener('click',usePlace);
+function upgradeShop(){
+  sheet(`<div class="who">Upgrade shop · you have ${S.coins} coins</div><p class="big">What do you want to upgrade?</p><p>Your dummies are level ${S.dl||0}. Your sword is the ${SWORDS[S.sword].n.toLowerCase()}, level ${S.up}.</p>`,
+    [['Dummy upgrades',dummyShop],['Swords',shop],['Leave',closeSheet]]);
+}
+$('shopb').addEventListener('click',()=>{if(mode!=='town'||sheetOpen()||road)return;upgradeShop()});
 $('tp').addEventListener('click',()=>{
   if(mode!=='town'||sheetOpen()||road)return;
   const list=places.filter(p=>p.name&&!(S.done&&p.fight));
@@ -507,7 +517,7 @@ function townStep(dt,t){
       if(q.stat||(S.done&&(q.fight||q.talk==='rival')))return;const d=Math.hypot(q.x-p.x,q.z-p.z);if(d<q.r&&d<best){best=d;near=q}});
     const pr=$('prompt');
     if(near&&!busy){const st=near.stat&&STATS.find(s=>s.k===near.stat);
-      const txt=st?st.verb:near.fight?'Fight Night doors':near.shop?'Sword shop':near.dummy?'Upgrade dummies':near.talk==='coach'?'Talk to Coach Vega':near.talk==='rival'?'Talk to '+BOSSES[S.beaten].name:'Say hello';
+      const txt=st?st.verb:near.fight?'Fight Night doors':near.upg?'Upgrade shop':near.shop?'Sword shop':near.dummy?'Upgrade dummies':near.talk==='coach'?'Talk to Coach Vega':near.talk==='rival'?'Talk to '+BOSSES[S.beaten].name:'Say hello';
       const h=(coarse?'':'<kbd>E</kbd>')+txt;if(pr.dataset.h!==h){pr.innerHTML=h;pr.dataset.h=h}pr.hidden=false}
     else pr.hidden=true;
   }
