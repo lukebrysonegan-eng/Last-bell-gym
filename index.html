@@ -167,7 +167,7 @@ const WALKERS=[
 const SWORDS=[{n:'Wooden sword',p:0,b:0,c:0x8a6a45},{n:'Iron sword',p:60,b:.15,c:0x8f969e},{n:'Steel longsword',p:150,b:.3,c:0xcfd6de},{n:'Knight\u2019s blade',p:320,b:.5,c:0xe8f1fa},{n:'Champion\u2019s greatsword',p:600,b:.75,c:0xf2b233},
   {n:'Obsidian blade',p:1000,b:1,c:0x2a2433},{n:'Stormbreaker',p:1600,b:1.4,c:0x4fa3e0},{n:'Dragonfang',p:2600,b:1.9,c:0xd8432f},{n:'Sunforged blade',p:4200,b:2.5,c:0xffd76a},{n:'Blade of the Last Bell',p:7000,b:3.5,c:0xb98cff}];
 const UPG=[
-  {k:'dl',n:'Training dummies',max:10,base:40,d:l=>`Every training circle gives \u00d7${1+l*.5} progress per hit.`},
+  {k:'dl',n:'Training dummies',max:10,base:40,d:l=>`Trainer: ${TRAINERS[Math.min(10,l)][0]}. Every training circle gives \u00d7${1+l*.5} progress per hit.`},
   {k:'hs',n:'Quick hands',max:8,base:60,d:l=>`You swing ${Math.round(l*15)}% faster in training circles.`},
   {k:'pc',n:'Lucky purse',max:10,base:50,d:l=>`All coins you earn are increased by ${l*25}%.`},
   {k:'vt',n:'Vitality',max:10,base:70,d:l=>`Your health in fights is increased by ${l*10}%.`},
@@ -209,7 +209,7 @@ function box(w,h,d,c,x,y,z,parent){
 function flat(w,d,c,x,y,z){const m=new T.Mesh(new T.PlaneGeometry(w,d),c&&c.isMaterial?c:mat(c));m.rotation.x=-Math.PI/2;m.position.set(x,y,z);m.receiveShadow=true;scene.add(m);return m}
 const solids=[];
 const solid=(x,z,w,d)=>solids.push([x-w/2,x+w/2,z-d/2,z+d/2]);
-const blocked=(x,z,r=.45)=>!AREAS.some(a=>Math.hypot(x-a[0],z-a[1])<a[2]-1.3)||solids.some(s=>x>s[0]-r&&x<s[1]+r&&z>s[2]-r&&z<s[3]+r);
+const blocked=(x,z,r=.45)=>!AREAS.some(a=>Math.abs(x-a[0])<a[2]-1.3&&Math.abs(z-a[1])<a[2]-1.3)||solids.some(s=>x>s[0]-r&&x<s[1]+r&&z>s[2]-r&&z<s[3]+r);
 const rnd=(a,b)=>a+Math.random()*(b-a);
 
 function facade(base,floors,cols){
@@ -266,16 +266,32 @@ const lerp=(a,b,k)=>a+(b-a)*k;
 const places=[];  // things you can walk up to
 let gymRoof,marquee,rival,coach,partner,walkers=[],rings=[],me,meRing,bossModel,matTex,matCanvas;
 const PARK={x:0,z:0,r:25};
-const R=30;
-function buildTown(){
-  flat(400,400,0x6f8f5f,0,0,0);
-  const g=new T.Mesh(new T.CircleGeometry(R,64),mat(0xa7a399));g.rotation.x=-Math.PI/2;g.position.y=.02;g.receiveShadow=true;scene.add(g);
+const R=30;let trainer,trainerMat,trainerLabel;
+const TRAINERS=[['Straw trainer',0xc9a86a],['Wooden trainer',0x9a6b3f],['Iron trainer',0x8f969e],['Steel trainer',0xcfd6de],['Stone trainer',0x77736b],['Bronze trainer',0xb87333],['Silver trainer',0xdfe6ee],['Gold trainer',0xf2b233],['Crystal trainer',0x7fd6e8],['Obsidian trainer',0x2a2433],['Champion trainer',0xb98cff]];
+function squareRoom(cx,cz,half,h){
+  flat(half*2,half*2,0xa7a399,cx,.02,cz);
   const bt=new T.CanvasTexture(textCanvas(256,128,c=>{c.fillStyle='#8a4b3a';c.fillRect(0,0,256,128);c.strokeStyle='#d2c4b4';c.lineWidth=3;
     for(let r=0;r<4;r++){c.beginPath();c.moveTo(0,r*32+1);c.lineTo(256,r*32+1);c.stroke();for(let k=0;k<4;k++){const x=k*64+(r%2?32:0);c.beginPath();c.moveTo(x,r*32);c.lineTo(x,r*32+32);c.stroke()}}}));
-  bt.wrapS=bt.wrapT=T.RepeatWrapping;bt.repeat.set(64,5);
-  const wall=new T.Mesh(new T.CylinderGeometry(R,R,7,72,1,true),new T.MeshLambertMaterial({map:bt,side:T.BackSide}));wall.position.y=3.5;wall.receiveShadow=true;scene.add(wall);
-  const cap=new T.Mesh(new T.RingGeometry(R,R+.9,72),mat(0x6e3a2d,{side:T.DoubleSide}));cap.rotation.x=-Math.PI/2;cap.position.y=7;scene.add(cap);
-  for(let k=0;k<22;k++){const a=k*.2856,r=rnd(35,46);tree(Math.cos(a)*r,Math.sin(a)*r)}
+  bt.wrapS=bt.wrapT=T.RepeatWrapping;bt.repeat.set(half/2,h/2.2);const m=new T.MeshLambertMaterial({map:bt});
+  [[0,-1,0],[0,1,Math.PI],[-1,0,Math.PI/2],[1,0,-Math.PI/2]].forEach(([ax,az,ry])=>{const w=new T.Mesh(new T.PlaneGeometry(half*2,h),m);w.position.set(cx+ax*half,h/2,cz+az*half);w.rotation.y=ry;w.receiveShadow=true;scene.add(w)});
+}
+function pad(x,z,text,act){
+  const b=new T.Mesh(new T.CylinderGeometry(.9,1,.25,24),mat(0x2b2b30));b.position.set(x,.13,z);scene.add(b);
+  const t=new T.Mesh(new T.CylinderGeometry(.6,.6,.2,24),mat(0xee5a4b));t.position.set(x,.33,z);scene.add(t);
+  label(text,x,2.5,z,.65);places.push({x,z,r:2.3,pad:act,label:text});
+}
+function setTrainer(){
+  const l=Math.min(10,S.dl||0),tr=TRAINERS[l];trainerMat.color.setHex(tr[1]);trainer.scale.setScalar(1+l*.07);
+  if(trainerLabel)scene.remove(trainerLabel);trainerLabel=label(tr[0],-11,3.3+l*.16,11,.6);
+  dummies.forEach(d=>{if(d.g.scale&&d.g!==trainer&&d.Z.hp!==Infinity)d.g.scale.setScalar(1+l*.05)});
+}
+function goTrain(){const Z=ZONES.slice().reverse().find(Z=>S.beaten>=Z.need);me.position.set(Z.x-7.5,0,Z.z-7.8);yaw=me.rotation.y=Math.PI}
+function goYard(){me.position.set(23,0,23);yaw=me.rotation.y=Math.atan2(-1,-1)}
+function buildTown(){
+  flat(400,400,0x6f8f5f,0,0,0);
+  squareRoom(0,0,R,7);
+  pad(26,26,'To training ground','go');
+  for(let k=0;k<22;k++){const a=k*.2856,r=rnd(47,58);tree(Math.cos(a)*r,Math.sin(a)*r)}
   gymRoof={visible:true};
   const track=new T.Mesh(new T.RingGeometry(PARK.r-1.4,PARK.r+1.4,72),mat(0xb5553a));track.rotation.x=-Math.PI/2;track.position.y=.05;track.receiveShadow=true;scene.add(track);
   // heavy bag
@@ -300,8 +316,10 @@ function buildTown(){
   for(let k=0;k<8;k++){const a=Math.PI/2+(k+1)*Math.PI/4,m=new T.Mesh(new T.TorusGeometry(1.3,.09,8,24),new T.MeshBasicMaterial({color:0xf2b233}));
     m.position.set(Math.cos(a)*PARK.r,1.4,Math.sin(a)*PARK.r);m.rotation.y=-a;m.visible=false;scene.add(m);rings.push(m)}
   // training dummy
-  const dx=-11,dz=11;box(.2,1.9,.2,0x6b4a2e,dx,.95,dz);box(.55,.7,.35,0xc9a86a,dx,1.35,dz);box(1.3,.14,.14,0x6b4a2e,dx,1.5,dz);box(.3,.3,.3,0xc9a86a,dx,2,dz);solid(dx,dz,.6,.6);
-  label('Training dummy',dx,3,dz,.55);places.push({x:dx,z:dz,r:2.2,dummy:true,name:'Training dummy'});
+  const dx=-11,dz=11;trainer=new T.Group();trainerMat=mat(0xc9a86a);
+  box(.2,1.9,.2,0x6b4a2e,0,.95,0,trainer);box(.55,.7,.35,trainerMat,0,1.35,0,trainer);box(1.3,.14,.14,0x6b4a2e,0,1.5,0,trainer);box(.3,.3,.3,trainerMat,0,2,0,trainer);
+  trainer.position.set(dx,0,dz);scene.add(trainer);solid(dx,dz,.6,.6);
+  places.push({x:dx,z:dz,r:2.2,dummy:true,name:'Training dummy',g:trainer});
   // sword shop
   box(6,3.6,4,0x6e5a44,13,1.8,-13.5);solid(13,-13.5,6,4);box(6.4,.15,1.8,0xb3202a,13,3,-10.8);
   SWORDS.forEach((w,k)=>box(.09,1.3,.03,w.c,10.4+k*.58,1.1,-11.45).rotation.z=.12);
@@ -331,11 +349,7 @@ function buildZones(){
     dummies.push({x:p.x,z:p.z,g:p.g||{rotation:{x:0},visible:true},hp:Infinity,Z:{m:1,hp:Infinity},wob:0,down:0,st:p.dummy?'sword':p.stat,quiet:!(p.dummy||p.stat==='pow')})});
   ZONES.forEach(Z=>{
   flat(90,90,0x6f8f5f,Z.x,0,Z.z);
-  const g=new T.Mesh(new T.CircleGeometry(14,48),mat(0x9d9a8f));g.rotation.x=-Math.PI/2;g.position.set(Z.x,.02,Z.z);g.receiveShadow=true;scene.add(g);
-  const bt=new T.CanvasTexture(textCanvas(256,128,c=>{c.fillStyle='#8a4b3a';c.fillRect(0,0,256,128);c.strokeStyle='#d2c4b4';c.lineWidth=3;
-    for(let r=0;r<4;r++){c.beginPath();c.moveTo(0,r*32+1);c.lineTo(256,r*32+1);c.stroke();for(let k=0;k<4;k++){const x=k*64+(r%2?32:0);c.beginPath();c.moveTo(x,r*32);c.lineTo(x,r*32+32);c.stroke()}}}));
-  bt.wrapS=bt.wrapT=T.RepeatWrapping;bt.repeat.set(30,4);
-  const w=new T.Mesh(new T.CylinderGeometry(14,14,6,56,1,true),new T.MeshLambertMaterial({map:bt,side:T.BackSide}));w.position.set(Z.x,3,Z.z);scene.add(w);
+  squareRoom(Z.x,Z.z,14,6);pad(Z.x+11,Z.z+11,'Back to yard','back');
   label(Z.n,Z.x,6.6,Z.z-13,1.1);
   for(let k=0;k<6;k++){const x=Z.x-7.5+k*3,z=Z.z-9,d=new T.Group();
     box(.2,1.9,.2,0x6b4a2e,0,.95,0,d);box(.62,.78,.4,Z.c,0,1.35,0,d);box(1.3,.14,.14,0x6b4a2e,0,1.5,0,d);box(.34,.34,.34,Z.c,0,2.04,0,d);
@@ -442,7 +456,7 @@ function closeSheet(){$('sheet').hidden=true;busy=false;drill=null}
 function sheetBtn(i=0){const f=sheetFns[i];if(f)f()}
 $('sheet').addEventListener('click',e=>{const y=e.target.closest('[data-buy]');
   if(y){const id=y.dataset.buy;
-    if(id[0]==='u'){const u=UPG.find(x=>x.k===id.slice(2)),c=uCost(u);if(S.coins<c||(S[u.k]||0)>=u.max)return;S.coins-=c;S[u.k]=(S[u.k]||0)+1}
+    if(id[0]==='u'){const u=UPG.find(x=>x.k===id.slice(2)),c=uCost(u);if(S.coins<c||(S[u.k]||0)>=u.max)return;S.coins-=c;S[u.k]=(S[u.k]||0)+1;if(u.k==='dl'){setTrainer();setTimeout(()=>floater(me.position.x,3,me.position.z,'New trainer: '+TRAINERS[S.dl][0],'good'),50)}}
     else{const i=+id.slice(1),w=SWORDS[i];if(S.coins<w.p)return;S.coins-=w.p;S.sword=i;me.userData.gR.material.color.setHex(w.c)}
     save();hud();upgradeShop();return}
   const b=e.target.closest('[data-i]');if(b)sheetBtn(+b.dataset.i)});
@@ -462,7 +476,7 @@ $('menu').addEventListener('click',()=>{
    <p><b>Dummy upgrades:</b> tap the Shop button at the top of the screen, or teleport to the Upgrade Shop, and spend coins on dummy levels. Each level makes every training circle give more progress per hit, up to level 10.</p>
    <p><b>Swords:</b> buy better swords at the Sword Shop, and train on the dummy to level your sword up. Both make every hit stronger.</p>
    ${S.perks.length?'<p><b>Learned:</b> '+BOSSES.filter(x=>x.perk&&has(x.perk.k)).map(x=>x.perk.name).join(', ')+'</p>':''}`,
-   [['Back to the street',closeSheet],['Start a new career',()=>say('New career','This erases your weeks of training and every win.',[['Keep my career',closeSheet],['Erase and restart',()=>{S=fresh();save();closeSheet();me.position.set(0,0,4);me.userData.gR.material.color.setHex(SWORDS[0].c);setMarquee();hud();intro()}]])]]);
+   [['Back to the street',closeSheet],['Start a new career',()=>say('New career','This erases your weeks of training and every win.',[['Keep my career',closeSheet],['Erase and restart',()=>{S=fresh();save();closeSheet();me.position.set(0,0,4);me.userData.gR.material.color.setHex(SWORDS[0].c);setTrainer();setMarquee();hud();intro()}]])]]);
 });
 function intro(){
   say('Coach Marisol Vega','There you are. Five fights stand between you and the welterweight title: Philadelphia, London, Mexico City, Tokyo, then Isaiah Crane in Las Vegas. Everything is here inside the wall. Tap Teleport to jump straight to any spot. Every station has a gold circle: stand in it and you train automatically for as long as you stay. Buy a better sword at the Sword Shop when you have the coins, and level it up on the training dummy in the yard. To farm damage, teleport to the Wooden dummy field and hit the dummies as much as you like. When you want the fight, teleport to the Fight Night gate.',
@@ -477,6 +491,7 @@ function usePlace(){
   if(p.walker)return say('Neighbour',p.walker.lines[Math.random()*p.walker.lines.length|0]);
   if(p.fight){const b=BOSSES[S.beaten];
     return sheet(`<div class="who">Fight Night · ${b.venue}</div><p class="big">${b.name}</p><p>${b.meta}</p><p>Coach Vega: “${readiness(b)}”</p>`,[[b.final?'Fight for the title':'Take the fight',()=>{closeSheet();startFight()}],['Not yet',closeSheet]])}
+  if(p.pad)return p.pad==='go'?goTrain():goYard();
   if(p.upg)return upgradeShop();
   if(p.shop)return shop();
   if(p.dummy)return dummyShop();
@@ -532,7 +547,7 @@ function townStep(dt,t){
       if(q.stat||(S.done&&(q.fight||q.talk==='rival')))return;const d=Math.hypot(q.x-p.x,q.z-p.z);if(d<q.r&&d<best){best=d;near=q}});
     const pr=$('prompt');
     if(near&&!busy){const st=near.stat&&STATS.find(s=>s.k===near.stat);
-      const txt=st?st.verb:near.fight?'Fight Night doors':near.upg?'Upgrade shop':near.shop?'Sword shop':near.dummy?'Upgrade dummies':near.talk==='coach'?'Talk to Coach Vega':near.talk==='rival'?'Talk to '+BOSSES[S.beaten].name:'Say hello';
+      const txt=st?st.verb:near.fight?'Fight Night doors':near.pad?near.label:near.upg?'Upgrade shop':near.shop?'Sword shop':near.dummy?'Upgrade dummies':near.talk==='coach'?'Talk to Coach Vega':near.talk==='rival'?'Talk to '+BOSSES[S.beaten].name:'Say hello';
       const h=(coarse?'':'<kbd>E</kbd>')+txt;if(pr.dataset.h!==h){pr.innerHTML=h;pr.dataset.h=h}pr.hidden=false}
     else pr.hidden=true;
   }
@@ -720,7 +735,7 @@ function start(data){
   S=(data&&data.stats)?data:(load()||fresh());S.coins??=30;S.sword??=0;S.up??=0;
   if(!renderer){$('sheet').hidden=false;$('sheet').innerHTML='<p class="big">3D is not available</p><p>This game needs WebGL, and this browser or device has it switched off.</p>';return}
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
-  buildTown();buildZones();buildRing();mood(false);setMarquee();hud();resize();
+  buildTown();buildZones();setTrainer();buildRing();mood(false);setMarquee();hud();resize();
   if(!S.met)intro();
   requestAnimationFrame(frame);
 }
